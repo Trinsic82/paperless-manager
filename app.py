@@ -131,15 +131,27 @@ elif page == "Dokumenttypen-Check":
     if st.button("🔄 Check wiederholen", key="doctype_refresh"):
         st.cache_data.clear(); st.rerun()
 
+    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     type_counts = Counter([d.get('document_type') for d in docs])
     few_docs = []
     for dt_id, count in type_counts.items():
         if count < 5:
             dt_name = doc_types.get(dt_id, "Ohne Typ")
-            few_docs.append({"Dokumenttyp": dt_name, "Anzahl": count})
+            if dt_id is not None:
+                link = f"{base_url}/documents/?document_type__id={dt_id}"
+            else:
+                link = f"{base_url}/documents/?document_type__isnull=true"
+            few_docs.append({"Dokumenttyp": dt_name, "Anzahl": count, "Link": link})
     
     if few_docs:
-        st.dataframe(pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True), hide_index=True, use_container_width=True)
+        st.dataframe(
+            pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True), 
+            hide_index=True, 
+            use_container_width=True,
+            column_config={
+                "Link": st.column_config.LinkColumn("Paperless Link", display_text="Filtern")
+            }
+        )
     else:
         st.success("Keine Dokumenttypen mit weniger als 5 Einträgen gefunden!")
 
