@@ -20,24 +20,19 @@ if "IS_CONNECTED" not in st.session_state:
 
 # --- SEITENLEISTE ---
 st.sidebar.title("Navigation")
-category = st.sidebar.radio(
+page = st.sidebar.radio(
     "Bereich", 
-    ["Startseite", "Konfiguration", "Checks", "Gesamtliste"],
+    [
+        "Startseite", 
+        "Konfiguration", 
+        "Gesamtliste",
+        "📊 Metadaten Analyse",
+        "⚖️ Speicherpfad-Dokumenttyp-Check",
+        "📉 Dokumenttypen-Check",
+        "📅 Datums-Check"
+    ],
     label_visibility="collapsed"
 )
-
-page = None
-if category == "Startseite":
-    page = "Startseite"
-elif category == "Konfiguration":
-    page = "Konfiguration"
-elif category == "Checks":
-    page = st.sidebar.radio(
-        "Verfügbare Checks:",
-        ["Metadaten Analyse", "Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
-    )
-elif category == "Gesamtliste":
-    page = "Gesamtliste"
 
 st.sidebar.divider()
 
@@ -89,7 +84,7 @@ elif page == "Konfiguration":
         if success: st.success(msg); st.cache_data.clear()
         else: st.error(msg)
 
-elif page == "📊 Analyse Metadaten":
+elif page == "📊 Metadaten Analyse":
     st.title("📊 Metadaten Analyse")
     if st.button("🔄 Analyse aktualisieren"):
         st.cache_data.clear(); st.rerun()
