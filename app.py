@@ -138,10 +138,10 @@ elif page == "Dokumenttypen-Check":
         if count < 5:
             dt_name = doc_types.get(dt_id, "Ohne Typ")
             if dt_id is not None:
-                link = f"{base_url}/documents/?document_type__id={dt_id}"
+                link = f"{base_url}/documents/?document_type__id={dt_id}#{dt_name}"
             else:
-                link = f"{base_url}/documents/?document_type__isnull=true"
-            few_docs.append({"Dokumenttyp": dt_name, "Anzahl": count, "Link": link})
+                link = f"{base_url}/documents/?document_type__isnull=true#{dt_name}"
+            few_docs.append({"Dokumenttyp": link, "Anzahl": count})
     
     if few_docs:
         st.dataframe(
@@ -149,7 +149,7 @@ elif page == "Dokumenttypen-Check":
             hide_index=True, 
             use_container_width=True,
             column_config={
-                "Link": st.column_config.LinkColumn("Paperless Link", display_text="Filtern")
+                "Dokumenttyp": st.column_config.LinkColumn("Dokumenttyp", display_text=r"#(.*)$")
             }
         )
     else:
