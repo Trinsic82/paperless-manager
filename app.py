@@ -219,4 +219,4 @@ elif page == "Gesamtliste":
 # Status Update
 if st.session_state["IS_CONNECTED"]: status_placeholder.success("🟢 API: Verbunden")
 else: status_placeholder.error("🔴 API: Nicht verbunden")
-cht verbunden")
+
