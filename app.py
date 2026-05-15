@@ -22,7 +22,7 @@ if "IS_CONNECTED" not in st.session_state:
 st.sidebar.title("📄 Navigation")
 page = st.sidebar.radio(
     "Wähle einen Bereich:", 
-    ["🏠 Startseite", "⚙️ Konfiguration", "📊 Analyse Metadaten", "⚖️ Konsistenz-Check", "📅 Datums-Check", "✏️ Massenbearbeitung"]
+    ["🏠 Startseite", "⚙️ Konfiguration", "📊 Analyse Metadaten", "⚖️ Speicherpfad-Dokumenttyp-Check", "📉 Dokumenttypen-Check", "📅 Datums-Check", "✏️ Massenbearbeitung"]
 )
 
 st.sidebar.divider()
@@ -56,7 +56,7 @@ if page == "🏠 Startseite":
     st.title("Paperless-ngx Metadata Manager")
     st.write("Verwalte und bereinige deine Metadaten effizient.")
     col1, col2, col3 = st.columns(3)
-    with col1: st.info("Nutze den **Konsistenz-Check**, um falsche Speicherpfade zu finden.")
+    with col1: st.info("Nutze den **Speicherpfad-Dokumenttyp-Check**, um falsche Speicherpfade zu finden.")
     with col2: st.info("Prüfe mit dem **Datums-Check** auf fehlerhafte OCR-Erkennungen.")
     with col3: st.info("Nutze die **Massenbearbeitung**, um Dokumente schnell zu korrigieren.")
 
@@ -94,8 +94,8 @@ elif page == "📊 Analyse Metadaten":
         st.subheader("Tags")
         st.dataframe(pd.DataFrame([{"Tag": tags.get(k, "Unbekannt"), "Anzahl": v} for k, v in tag_counts.items()]).sort_values("Anzahl", ascending=False), hide_index=True, use_container_width=True)
 
-elif page == "⚖️ Konsistenz-Check":
-    st.title("⚖️ Konsistenz-Check")
+elif page == "⚖️ Speicherpfad-Dokumenttyp-Check":
+    st.title("⚖️ Speicherpfad-Dokumenttyp-Check")
     if st.button("🔄 Check wiederholen"):
         st.cache_data.clear(); st.rerun()
 
@@ -105,6 +105,24 @@ elif page == "⚖️ Konsistenz-Check":
     if anomalies:
         st.dataframe(pd.DataFrame(anomalies), use_container_width=True, hide_index=True, column_config={"ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details")})
     else: st.success("Alle Pfade sind konsistent!")
+
+elif page == "📉 Dokumenttypen-Check":
+    st.title("📉 Dokumenttypen-Check")
+    st.write("Zeigt alle Dokumenttypen, die weniger als 5 Einträge haben.")
+    if st.button("🔄 Check wiederholen", key="doctype_refresh"):
+        st.cache_data.clear(); st.rerun()
+
+    type_counts = Counter([d.get('document_type') for d in docs])
+    few_docs = []
+    for dt_id, count in type_counts.items():
+        if count < 5:
+            dt_name = doc_types.get(dt_id, "Ohne Typ")
+            few_docs.append({"Dokumenttyp": dt_name, "Anzahl": count})
+    
+    if few_docs:
+        st.dataframe(pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True), hide_index=True, use_container_width=True)
+    else:
+        st.success("Keine Dokumenttypen mit weniger als 5 Einträgen gefunden!")
 
 elif page == "📅 Datums-Check":
     st.title("📅 Datums-Check")
