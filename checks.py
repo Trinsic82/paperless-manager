@@ -1,6 +1,22 @@
 from collections import defaultdict, Counter
 from datetime import datetime
 
+def check_document_types_count(docs, doc_types, base_url):
+    """
+    Findet Dokumenttypen, die weniger als 5 Einträge haben.
+    """
+    type_counts = Counter([d.get('document_type') for d in docs])
+    few_docs = []
+    for dt_id, count in type_counts.items():
+        if count < 5:
+            dt_name = doc_types.get(dt_id, "Ohne Typ")
+            if dt_id is not None:
+                link = f"{base_url}/documents/?document_type__id={dt_id}#{dt_name}"
+            else:
+                link = f"{base_url}/documents/?document_type__isnull=true#{dt_name}"
+            few_docs.append({"Dokumenttyp": link, "Anzahl": count})
+    return few_docs
+
 def check_path_consistency(docs, doc_types, st_paths, base_url):
     """
     Prüft Dokumente auf Konsistenz der Speicherpfade innerhalb desselben Dokumenttyps.
