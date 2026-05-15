@@ -20,19 +20,24 @@ if "IS_CONNECTED" not in st.session_state:
 
 # --- SEITENLEISTE ---
 st.sidebar.title("Navigation")
-page = st.sidebar.radio(
+category = st.sidebar.radio(
     "Bereich", 
-    [
-        "Startseite", 
-        "Konfiguration", 
-        "Gesamtliste",
-        "📊 Metadaten Analyse",
-        "⚖️ Speicherpfad-Dokumenttyp-Check",
-        "📉 Dokumenttypen-Check",
-        "📅 Datums-Check"
-    ],
+    ["Startseite", "Konfiguration", "Checks", "Gesamtliste"],
     label_visibility="collapsed"
 )
+
+page = None
+if category == "Startseite":
+    page = "Startseite"
+elif category == "Konfiguration":
+    page = "Konfiguration"
+elif category == "Checks":
+    page = st.sidebar.radio(
+        "Verfügbare Checks:",
+        ["Metadaten Analyse", "Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
+    )
+elif category == "Gesamtliste":
+    page = "Gesamtliste"
 
 st.sidebar.divider()
 
@@ -84,7 +89,7 @@ elif page == "Konfiguration":
         if success: st.success(msg); st.cache_data.clear()
         else: st.error(msg)
 
-elif page == "📊 Metadaten Analyse":
+elif page == "Metadaten Analyse":
     st.title("📊 Metadaten Analyse")
     if st.button("🔄 Analyse aktualisieren"):
         st.cache_data.clear(); st.rerun()
@@ -108,7 +113,7 @@ elif page == "📊 Metadaten Analyse":
         st.subheader("Tags")
         st.dataframe(pd.DataFrame([{"Tag": tags.get(k, "Unbekannt"), "Anzahl": v} for k, v in tag_counts.items()]).sort_values("Anzahl", ascending=False), hide_index=True, use_container_width=True)
 
-elif page == "⚖️ Speicherpfad-Dokumenttyp-Check":
+elif page == "Speicherpfad-Dokumenttyp-Check":
     st.title("⚖️ Speicherpfad-Dokumenttyp-Check")
     if st.button("🔄 Check wiederholen"):
         st.cache_data.clear(); st.rerun()
@@ -120,7 +125,7 @@ elif page == "⚖️ Speicherpfad-Dokumenttyp-Check":
         st.dataframe(pd.DataFrame(anomalies), use_container_width=True, hide_index=True, column_config={"ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details")})
     else: st.success("Alle Pfade sind konsistent!")
 
-elif page == "📉 Dokumenttypen-Check":
+elif page == "Dokumenttypen-Check":
     st.title("📉 Dokumenttypen-Check")
     st.write("Zeigt alle Dokumenttypen, die weniger als 5 Einträge haben.")
     if st.button("🔄 Check wiederholen", key="doctype_refresh"):
@@ -138,7 +143,7 @@ elif page == "📉 Dokumenttypen-Check":
     else:
         st.success("Keine Dokumenttypen mit weniger als 5 Einträgen gefunden!")
 
-elif page == "📅 Datums-Check":
+elif page == "Datums-Check":
     st.title("📅 Datums-Check")
     st.write("Identifiziert Dokumente mit verdächtigen Jahreszahlen (Zukunft, globale Ausreißer oder > 5 Jahre Lücke im Typ).")
     if st.button("🔄 Check wiederholen", key="date_refresh"):
