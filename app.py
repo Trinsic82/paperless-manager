@@ -19,15 +19,29 @@ if "IS_CONNECTED" not in st.session_state:
     st.session_state["IS_CONNECTED"] = False
 
 # --- SEITENLEISTE ---
-st.sidebar.title("📄 Navigation")
-page = st.sidebar.radio(
-    "Wähle einen Bereich:", 
-    ["🏠 Startseite", "⚙️ Konfiguration", "📊 Analyse Metadaten", "⚖️ Speicherpfad-Dokumenttyp-Check", "📉 Dokumenttypen-Check", "📅 Datums-Check", "✏️ Massenbearbeitung"]
+st.sidebar.title("Navigation")
+category = st.sidebar.radio(
+    "Bereich", 
+    ["Startseite", "Konfiguration", "Checks", "Gesamtliste"],
+    label_visibility="collapsed"
 )
+
+page = None
+if category == "Startseite":
+    page = "Startseite"
+elif category == "Konfiguration":
+    page = "Konfiguration"
+elif category == "Checks":
+    page = st.sidebar.radio(
+        "Verfügbare Checks:",
+        ["Metadaten Analyse", "Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
+    )
+elif category == "Gesamtliste":
+    page = "Gesamtliste"
 
 st.sidebar.divider()
 
-if st.sidebar.button("🔄 Daten neu laden", use_container_width=True):
+if st.sidebar.button("Daten neu laden", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
@@ -35,7 +49,7 @@ st.sidebar.divider()
 status_placeholder = st.sidebar.empty()
 
 # --- DATEN LADEN ---
-if page not in ["🏠 Startseite", "⚙️ Konfiguration"]:
+if page not in ["Startseite", "Konfiguration"]:
     if not st.session_state["IS_CONNECTED"]:
         st.warning("Bitte stelle zuerst unter Konfiguration eine Verbindung her.")
         st.stop()
@@ -52,15 +66,20 @@ if page not in ["🏠 Startseite", "⚙️ Konfiguration"]:
         st.stop()
 
 # --- PAGES ---
-if page == "🏠 Startseite":
+if page == "Startseite":
     st.title("Paperless-ngx Metadata Manager")
-    st.write("Verwalte und bereinige deine Metadaten effizient.")
+    st.write("Willkommen! Dieses Tool hilft dir dabei, deine Paperless-ngx Metadaten effizient zu verwalten und zu bereinigen.")
+    
+    st.subheader("Funktionen im Überblick:")
     col1, col2, col3 = st.columns(3)
-    with col1: st.info("Nutze den **Speicherpfad-Dokumenttyp-Check**, um falsche Speicherpfade zu finden.")
-    with col2: st.info("Prüfe mit dem **Datums-Check** auf fehlerhafte OCR-Erkennungen.")
-    with col3: st.info("Nutze die **Massenbearbeitung**, um Dokumente schnell zu korrigieren.")
+    with col1:
+        st.info("**Checks**\n\nFinde Inkonsistenzen bei Speicherpfaden, entdecke ungenutzte Dokumenttypen und identifiziere fehlerhafte Datumsangaben.")
+    with col2:
+        st.info("**Gesamtliste**\n\nNutze die Tabellenansicht zur komfortablen Massenbearbeitung von Dokumenttypen, Korrespondenten und Speicherpfaden.")
+    with col3:
+        st.info("**Konfiguration**\n\nVerbinde das Tool mit deiner Paperless-ngx Instanz über die API.")
 
-elif page == "⚙️ Konfiguration":
+elif page == "Konfiguration":
     st.title("Konfiguration")
     new_url = st.text_input("URL", value=st.session_state["PAPERLESS_URL"])
     new_token = st.text_input("Token", value=st.session_state["PAPERLESS_TOKEN"], type="password")
@@ -148,8 +167,8 @@ elif page == "📅 Datums-Check":
     else: 
         st.success("Keine Datums-Anomalien gefunden!")
 
-elif page == "✏️ Massenbearbeitung":
-    st.title("✏️ Massenbearbeitung")
+elif page == "Gesamtliste":
+    st.title("Gesamtliste")
     if st.button("🔄 Liste aktualisieren"):
         st.cache_data.clear(); st.rerun()
 
@@ -200,3 +219,4 @@ elif page == "✏️ Massenbearbeitung":
 # Status Update
 if st.session_state["IS_CONNECTED"]: status_placeholder.success("🟢 API: Verbunden")
 else: status_placeholder.error("🔴 API: Nicht verbunden")
+cht verbunden")
