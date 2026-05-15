@@ -22,7 +22,7 @@ if "IS_CONNECTED" not in st.session_state:
 st.sidebar.title("Navigation")
 category = st.sidebar.radio(
     "Bereich", 
-    ["Startseite", "Konfiguration", "Checks", "Gesamtliste"],
+    ["Startseite", "Konfiguration", "Metadaten Analyse", "Checks", "Gesamtliste"],
     label_visibility="collapsed"
 )
 
@@ -31,10 +31,12 @@ if category == "Startseite":
     page = "Startseite"
 elif category == "Konfiguration":
     page = "Konfiguration"
+elif category == "Metadaten Analyse":
+    page = "Metadaten Analyse"
 elif category == "Checks":
     page = st.sidebar.radio(
         "Verfügbare Checks:",
-        ["Metadaten Analyse", "Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
+        ["Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
     )
 elif category == "Gesamtliste":
     page = "Gesamtliste"
