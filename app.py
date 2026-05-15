@@ -1,4 +1,3 @@
-cat << 'EOF' > ~/paperless-manager/app.py
 import os
 import requests
 import pandas as pd
@@ -298,4 +297,3 @@ elif page == "✏️ Massenbearbeitung":
 # Status Update
 if st.session_state["IS_CONNECTED"]: status_placeholder.success("🟢 API: Verbunden")
 else: status_placeholder.error("🔴 API: Nicht verbunden")
-EOF
