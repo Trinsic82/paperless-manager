@@ -124,7 +124,13 @@ with tab2:
         
     if filtered_docs:
         df = pd.DataFrame(filtered_docs)
-        edited_df = st.data_editor(df, hide_index=True, column_config={"Auswählen": st.column_config.CheckboxColumn(required=True)}, disabled=["ID", "Titel", "Korrespondent", "Dokumenttyp", "Speicherpfad"])
+        edited_df = st.data_editor(
+            df,
+            hide_index=True,
+            use_container_width=True,
+            column_config={"Auswählen": st.column_config.CheckboxColumn(required=True)},
+            disabled=["ID", "Titel", "Korrespondent", "Dokumenttyp", "Speicherpfad"]
+        )
         
         selected_ids = edited_df[edited_df["Auswählen"]]["ID"].tolist()
         
