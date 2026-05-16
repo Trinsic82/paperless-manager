@@ -77,7 +77,8 @@ elif page == "Konfiguration":
     render_config()
 
 elif page == "Metadaten Analyse":
-    render_analysis(docs, doc_types, corresp, st_paths, tags)
+    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
+    render_analysis(docs, doc_types, corresp, st_paths, tags, base_url)
 
 elif page == "Speicherpfad-Dokumenttyp-Check":
     base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
