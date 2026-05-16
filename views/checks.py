@@ -27,14 +27,14 @@ def render_path_check(docs, doc_types, st_paths, base_url):
     else:
         st.success("Alle Pfade sind konsistent!")
 
-def render_doctype_check(docs, doc_types, base_url):
+def render_doctype_check(docs, doc_types, base_url, threshold=5):
     st.title("📉 Dokumenttypen-Check")
-    st.write("Zeigt alle Dokumenttypen, die weniger als 5 Einträge haben.")
+    st.write(f"Zeigt alle Dokumenttypen, die weniger als {threshold} Einträge haben.")
     if st.button("🔄 Check wiederholen", key="doctype_refresh"):
         st.cache_data.clear()
         st.rerun()
 
-    few_docs = check_document_types_count(docs, doc_types, base_url)
+    few_docs = check_document_types_count(docs, doc_types, base_url, threshold=threshold)
     if few_docs:
         st.dataframe(
             pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True),
@@ -45,16 +45,34 @@ def render_doctype_check(docs, doc_types, base_url):
             }
         )
     else:
-        st.success("Keine Dokumenttypen mit weniger als 5 Einträgen gefunden!")
+        st.success(f"Keine Dokumenttypen mit weniger als {threshold} Einträgen gefunden!")
 
-def render_date_check(docs, doc_types, base_url):
+def render_date_check(
+    docs,
+    doc_types,
+    base_url,
+    future_years=0,
+    min_year_offset=5,
+    isolation_gap_years=5,
+):
     st.title("📅 Datums-Check")
-    st.write("Identifiziert Dokumente mit verdächtigen Jahreszahlen (Zukunft, globale Ausreißer oder > 5 Jahre Lücke im Typ).")
+    st.write(
+        "Identifiziert Dokumente mit verdächtigen Jahreszahlen "
+        f"(Zukunft +{future_years} Jahre, globale Ausreißer unter dem 5. Perzentil minus {min_year_offset} Jahre, "
+        f"oder isolierte Lücken größer {isolation_gap_years} Jahre pro Typ)."
+    )
     if st.button("🔄 Check wiederholen", key="date_refresh"):
         st.cache_data.clear()
         st.rerun()
 
-    date_anomalies = check_date_anomalies(docs, doc_types, base_url)
+    date_anomalies = check_date_anomalies(
+        docs,
+        doc_types,
+        base_url,
+        future_years=future_years,
+        min_year_offset=min_year_offset,
+        isolation_gap_years=isolation_gap_years,
+    )
 
     if date_anomalies:
         df_dates = pd.DataFrame(date_anomalies)
@@ -72,9 +90,10 @@ def render_date_check(docs, doc_types, base_url):
         st.success("Keine Datums-Anomalien gefunden!")
 
 
-def render_custom_field_check(docs, doc_types, base_url):
+def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
     st.title("🧩 Custom Fields Check")
     st.write("Prüft, welche Dokumenttypen Custom Fields nicht gefüllt haben und zeigt fehlende Dokumente an.")
+    st.write(f"Dokumenttyp-Kombinationen mit mindestens {warning_threshold}% Befüllung, aber nicht 100%, werden als potenzielle Anomalie markiert.")
 
     # Lade verfügbare Custom Fields
     custom_fields = fetch_custom_fields()
@@ -110,11 +129,18 @@ def render_custom_field_check(docs, doc_types, base_url):
 
     anomalies, summary = check_custom_field_missing(docs, doc_types, selected_fields, base_url)
 
-    # Neue Sektion: Dokumenttypen mit >75% aber <100% Befüllung
-    st.subheader("⚠️ Potenzielle Anomalien (75%-99% befüllt)")
-    st.write("Diese Dokumenttyp-CustomField-Kombinationen sind zu >75% befüllt, sollten aber komplett sein:")
+    # Neue Sektion: Dokumenttypen mit hohem, aber nicht vollständigem Befüllungsgrad
+    st.subheader(f"⚠️ Potenzielle Anomalien ({warning_threshold}%–99% befüllt)")
+    st.write(
+        f"Diese Dokumenttyp-CustomField-Kombinationen sind mindestens {warning_threshold}% befüllt, aber nicht 100%."
+    )
     
-    potential_issues = [s for s in summary if 75 < (s['Gefüllt'] / s['Gesamt'] * 100) < 100]
+    potential_issues = [
+        s for s in summary
+        if s['Gesamt'] > 0
+        and (s['Gefüllt'] / s['Gesamt'] * 100) >= warning_threshold
+        and s['Gefüllt'] < s['Gesamt']
+    ]
     
     if potential_issues:
         df_issues = pd.DataFrame(potential_issues).copy()

@@ -1,14 +1,14 @@
 from collections import defaultdict, Counter
 from datetime import datetime
 
-def check_document_types_count(docs, doc_types, base_url):
+def check_document_types_count(docs, doc_types, base_url, threshold=5):
     """
-    Findet Dokumenttypen, die weniger als 5 Einträge haben.
+    Findet Dokumenttypen, die weniger als threshold Einträge haben.
     """
     type_counts = Counter([d.get('document_type') for d in docs])
     few_docs = []
     for dt_id, count in type_counts.items():
-        if count < 5:
+        if count < threshold:
             dt_name = doc_types.get(dt_id, "Ohne Typ")
             if dt_id is not None:
                 link = f"{base_url}/documents/?document_type__id={dt_id}#{dt_name}"
@@ -41,7 +41,14 @@ def check_path_consistency(docs, doc_types, st_paths, base_url):
                 })
     return anomalies
 
-def check_date_anomalies(docs, doc_types, base_url):
+def check_date_anomalies(
+    docs,
+    doc_types,
+    base_url,
+    future_years=0,
+    min_year_offset=5,
+    isolation_gap_years=5,
+):
     """
     Prüft Dokumente auf Datumsanomalien.
     """
@@ -50,7 +57,7 @@ def check_date_anomalies(docs, doc_types, base_url):
     valid_years = sorted([int(d.get('created')[:4]) for d in docs if d.get('created') and d.get('created')[:4].isdigit()])
     if valid_years:
         p05_year = valid_years[int(len(valid_years) * 0.05)]
-        global_min_threshold = p05_year - 5
+        global_min_threshold = p05_year - min_year_offset
     else:
         global_min_threshold = 1900
 
@@ -73,7 +80,7 @@ def check_date_anomalies(docs, doc_types, base_url):
             reason = ""
             is_anomaly = False
             
-            if doc_year > current_year:
+            if doc_year > current_year + future_years:
                 is_anomaly = True
                 reason = f"Zukunft ({doc_year})"
             elif doc_year < global_min_threshold:
@@ -81,9 +88,9 @@ def check_date_anomalies(docs, doc_types, base_url):
                 reason = f"Sehr alt ({doc_year})"
             elif len(group_years) > 1:
                 min_dist = min([abs(doc_year - y) for y in group_years if y != doc_year])
-                if min_dist > 5:
+                if min_dist > isolation_gap_years:
                     is_anomaly = True
-                    reason = f"Isoliert (> 5 J. Lücke)"
+                    reason = f"Isoliert (> {isolation_gap_years} J. Lücke)"
 
             if is_anomaly:
                 dt_id = d.get('document_type')

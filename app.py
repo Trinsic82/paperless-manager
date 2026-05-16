@@ -25,6 +25,17 @@ if "PAPERLESS_TOKEN" not in st.session_state:
 if "IS_CONNECTED" not in st.session_state:
     st.session_state["IS_CONNECTED"] = False
 
+if "DOC_TYPE_COUNT_THRESHOLD" not in st.session_state:
+    st.session_state["DOC_TYPE_COUNT_THRESHOLD"] = 5
+if "DATE_FUTURE_THRESHOLD" not in st.session_state:
+    st.session_state["DATE_FUTURE_THRESHOLD"] = 0
+if "DATE_MIN_YEAR_OFFSET" not in st.session_state:
+    st.session_state["DATE_MIN_YEAR_OFFSET"] = 5
+if "DATE_ISOLATION_GAP_YEARS" not in st.session_state:
+    st.session_state["DATE_ISOLATION_GAP_YEARS"] = 5
+if "CUSTOM_FIELD_WARNING_THRESHOLD" not in st.session_state:
+    st.session_state["CUSTOM_FIELD_WARNING_THRESHOLD"] = 75
+
 # --- SEITENLEISTE ---
 st.sidebar.title("Navigation")
 category = st.sidebar.radio(
@@ -95,13 +106,30 @@ elif page == "Speicherpfad-Dokumenttyp-Check":
     render_path_check(docs, doc_types, st_paths, base_url)
 
 elif page == "Dokumenttypen-Check":
-    render_doctype_check(docs, doc_types, base_url)
+    render_doctype_check(
+        docs,
+        doc_types,
+        base_url,
+        st.session_state["DOC_TYPE_COUNT_THRESHOLD"],
+    )
 
 elif page == "Datums-Check":
-    render_date_check(docs, doc_types, base_url)
+    render_date_check(
+        docs,
+        doc_types,
+        base_url,
+        future_years=st.session_state["DATE_FUTURE_THRESHOLD"],
+        min_year_offset=st.session_state["DATE_MIN_YEAR_OFFSET"],
+        isolation_gap_years=st.session_state["DATE_ISOLATION_GAP_YEARS"],
+    )
 
 elif page == "Custom Fields-Check":
-    render_custom_field_check(docs, doc_types, base_url)
+    render_custom_field_check(
+        docs,
+        doc_types,
+        base_url,
+        warning_threshold=st.session_state["CUSTOM_FIELD_WARNING_THRESHOLD"],
+    )
 
 elif page == "Gesamtliste":
     render_list(docs, doc_types, corresp, st_paths, base_url)
