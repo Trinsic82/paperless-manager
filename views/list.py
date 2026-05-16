@@ -31,8 +31,8 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
         edited = st.data_editor(
             pd.DataFrame(filtered), hide_index=True, use_container_width=True,
             column_config={
-                "Wählen": st.column_config.CheckboxColumn(required=True),
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details")
+                "Wählen": st.column_config.CheckboxColumn(required=True, width=None),
+                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)
             },
             disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad"]
         )

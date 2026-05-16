@@ -16,7 +16,7 @@ def render_path_check(docs, doc_types, st_paths, base_url):
             pd.DataFrame(anomalies), 
             use_container_width=True, 
             hide_index=True, 
-            column_config={"ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details")}
+            column_config={"ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)}
         )
     else:
         st.success("Alle Pfade sind konsistent!")
@@ -35,7 +35,7 @@ def render_doctype_check(docs, doc_types, base_url):
             hide_index=True,
             use_container_width=True,
             column_config={
-                "Dokumenttyp": st.column_config.LinkColumn("Dokumenttyp", display_text=r"#(.*)$")
+                "Dokumenttyp": st.column_config.LinkColumn("Dokumenttyp", display_text=r"#(.*)$", width=None)
             }
         )
     else:
@@ -57,9 +57,9 @@ def render_date_check(docs, doc_types, base_url):
             use_container_width=True, 
             hide_index=True,
             column_config={
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details"),
-                "Typ": st.column_config.LinkColumn("Typ", display_text=r"#(.*)$"),
-                "Jahr": st.column_config.NumberColumn(format="%d")
+                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
+                "Typ": st.column_config.LinkColumn("Typ", display_text=r"#(.*)$", width=None),
+                "Jahr": st.column_config.NumberColumn(format="%d", width=None)
             }
         )
     else: 

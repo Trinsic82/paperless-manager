@@ -34,7 +34,7 @@ def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url):
             df_types.sort_values("Anzahl", ascending=False),
             hide_index=True,
             use_container_width=True,
-            column_config={"Typ": st.column_config.LinkColumn("Typ", display_text=r"#(.*)$")}
+            column_config={"Typ": st.column_config.LinkColumn("Typ", display_text=r"#(.*)$", width=None)}
         )
     with c2:
         st.subheader("Korrespondenten")
@@ -52,7 +52,7 @@ def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url):
             df_corr.sort_values("Anzahl", ascending=False),
             hide_index=True,
             use_container_width=True,
-            column_config={"Name": st.column_config.LinkColumn("Name", display_text=r"#(.*)$")}
+            column_config={"Name": st.column_config.LinkColumn("Name", display_text=r"#(.*)$", width=None)}
         )
     with c3:
         st.subheader("Speicherpfade")
@@ -70,7 +70,7 @@ def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url):
             df_paths.sort_values("Anzahl", ascending=False),
             hide_index=True,
             use_container_width=True,
-            column_config={"Pfad Name": st.column_config.LinkColumn("Pfad Name", display_text=r"#(.*)$")}
+            column_config={"Pfad Name": st.column_config.LinkColumn("Pfad Name", display_text=r"#(.*)$", width=None)}
         )
     with c4:
         st.subheader("Tags")
@@ -88,5 +88,5 @@ def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url):
             df_tags.sort_values("Anzahl", ascending=False),
             hide_index=True,
             use_container_width=True,
-            column_config={"Tag": st.column_config.LinkColumn("Tag", display_text=r"#(.*)$")}
+            column_config={"Tag": st.column_config.LinkColumn("Tag", display_text=r"#(.*)$", width=None)}
         )
