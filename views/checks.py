@@ -91,11 +91,14 @@ def render_custom_field_check(docs, doc_types, base_url):
     for idx, cf in enumerate(custom_fields):
         col = cols[idx % 2]
         with col:
+            label = cf['name']
+            if cf.get('slug'):
+                label += f" ({cf['slug']})"
             if st.checkbox(
-                f"{cf['name']} ({cf['data_type']})",
+                f"{label} — {cf['data_type']}",
                 key=f"cf_{cf['id']}"
             ):
-                selected_fields.append(cf['name'])
+                selected_fields.append({'path': cf['path'], 'name': cf['name']})
     
     if st.button("🔄 Check ausführen", key="custom_fields_refresh"):
         st.cache_data.clear()

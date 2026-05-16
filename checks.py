@@ -104,8 +104,27 @@ def _resolve_field_value(document, field_path):
     for part in field_path.split('.'):
         if isinstance(value, dict) and part in value:
             value = value[part]
-        else:
-            return None
+            continue
+
+        if isinstance(value, list):
+            matched = None
+            for item in value:
+                if not isinstance(item, dict):
+                    continue
+                if part in item:
+                    matched = item[part]
+                    break
+                if item.get('slug') == part or item.get('name') == part:
+                    matched = item.get('value')
+                    if matched is None:
+                        matched = item.get(part)
+                    break
+            if matched is None:
+                return None
+            value = matched
+            continue
+
+        return None
     return value
 
 
@@ -122,17 +141,31 @@ def _is_field_filled(value):
 def check_custom_field_missing(docs, doc_types, field_names, base_url):
     """
     Findet Dokumente, bei denen die benannten Custom Fields fehlen oder leer sind.
-    field_names kann ein String oder eine Liste von Strings sein.
+    field_names kann ein String, eine Liste von Strings oder eine Liste von Dictionaries sein.
     """
-    # Normalisiere zu Liste
-    if isinstance(field_names, str):
+    normalized_fields = []
+    if isinstance(field_names, (str, dict)):
         field_names = [field_names]
-    
+
+    for field in field_names:
+        if isinstance(field, dict):
+            normalized_fields.append({
+                'path': field.get('path'),
+                'display': field.get('name') or field.get('path'),
+            })
+        else:
+            normalized_fields.append({
+                'path': field,
+                'display': field,
+            })
+
     all_anomalies = []
     all_summary = []
     
     # Prüfe jeden Field einzeln
-    for field_name in field_names:
+    for field_info in normalized_fields:
+        field_path = field_info['path']
+        field_display = field_info['display']
         anomalies = []
         type_summary = {}
 
@@ -142,7 +175,7 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
             if dt_id is None:
                 continue
 
-            value = _resolve_field_value(d, field_name)
+            value = _resolve_field_value(d, field_path)
             filled = _is_field_filled(value)
 
             if dt_name not in type_summary:
@@ -156,7 +189,7 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
                     'ID': f"{base_url}/documents/{d['id']}/details",
                     'Titel': d.get('title', ''),
                     'Dokumenttyp': dt_name,
-                    'Custom Field': field_name,
+                    'Custom Field': field_display,
                     'Wert': value if value is not None else '',
                 })
 
@@ -169,7 +202,7 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
                     status = f"{counts['missing']} von {counts['missing'] + counts['filled']} fehlend"
                 summary.append({
                     'Dokumenttyp': dt_name,
-                    'Custom Field': field_name,
+                    'Custom Field': field_display,
                     'Gesamt': counts['missing'] + counts['filled'],
                     'Gefüllt': counts['filled'],
                     'Fehlend': counts['missing'],

@@ -44,12 +44,20 @@ def fetch_all(endpoint):
 def fetch_custom_fields():
     """Ruft alle verfügbaren Custom Fields aus Paperless ab."""
     custom_fields = fetch_all("custom_fields")
-    # Extrahiere nur Name und ID für die Anzeige
-    return [{
-        'id': cf.get('id'),
-        'name': cf.get('name'),
-        'data_type': cf.get('data_type')
-    } for cf in custom_fields]
+    # Extrahiere Name, Slug und bereite den Pfad für Dokumentdaten vor
+    result = []
+    for cf in custom_fields:
+        slug = cf.get('slug')
+        name = cf.get('name') or slug or str(cf.get('id'))
+        path = f"custom_fields.{slug}" if slug else f"custom_fields.{name}"
+        result.append({
+            'id': cf.get('id'),
+            'name': name,
+            'slug': slug,
+            'data_type': cf.get('data_type'),
+            'path': path,
+        })
+    return result
 
 def update_document(doc_id, payload):
     base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
