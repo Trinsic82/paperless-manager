@@ -83,13 +83,6 @@ def render_custom_field_check(docs, doc_types, base_url):
         st.warning("Keine Custom Fields in Paperless gefunden.")
         return
     
-    # DEBUG: Zeige die verfügbaren Custom Fields
-    with st.expander("🔍 DEBUG: Verfügbare Custom Fields"):
-        st.json(custom_fields)
-        if docs:
-            st.write("**Struktur erstes Dokument (custom_fields):**")
-            st.json(docs[0].get('custom_fields'))
-    
     # Zeige Custom Fields als Checkboxen
     st.subheader("Wähle Custom Fields zum Prüfen:")
     selected_fields = []
@@ -117,8 +110,33 @@ def render_custom_field_check(docs, doc_types, base_url):
 
     anomalies, summary = check_custom_field_missing(docs, doc_types, selected_fields, base_url)
 
+    # Neue Sektion: Dokumenttypen mit >75% aber <100% Befüllung
+    st.subheader("⚠️ Potenzielle Anomalien (75%-99% befüllt)")
+    st.write("Diese Dokumenttyp-CustomField-Kombinationen sind zu >75% befüllt, sollten aber komplett sein:")
+    
+    potential_issues = [s for s in summary if 75 < (s['Gefüllt'] / s['Gesamt'] * 100) < 100]
+    
+    if potential_issues:
+        df_issues = pd.DataFrame(potential_issues).copy()
+        df_issues['Befüllung %'] = (df_issues['Gefüllt'] / df_issues['Gesamt'] * 100).round(1).astype(str) + '%'
+        st.dataframe(
+            df_issues.sort_values("Befüllung %", ascending=False)[["Dokumenttyp", "Custom Field", "Gesamt", "Gefüllt", "Fehlend", "Befüllung %"]],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Dokumenttyp": st.column_config.TextColumn(width=None),
+                "Custom Field": st.column_config.TextColumn(width=None),
+                "Gesamt": st.column_config.NumberColumn(width=None),
+                "Gefüllt": st.column_config.NumberColumn(width=None),
+                "Fehlend": st.column_config.NumberColumn(width=None),
+                "Befüllung %": st.column_config.TextColumn(width=None),
+            }
+        )
+    else:
+        st.success("Keine Anomalien gefunden - alle CustomField-Kombinationen sind entweder <75% oder 100% befüllt.")
+
     if summary:
-        st.subheader("Zusammenfassung nach Dokumenttyp")
+        st.subheader("Zusammenfassung nach Dokumenttyp - Custom Fields-Check")
         st.dataframe(
             pd.DataFrame(summary).sort_values(["Fehlend", "Gesamt"], ascending=[False, False]),
             use_container_width=True,
@@ -132,8 +150,6 @@ def render_custom_field_check(docs, doc_types, base_url):
                 "Status": st.column_config.TextColumn(width=None),
             }
         )
-    else:
-        st.success("Keine fehlenden Custom Fields gefunden.")
 
     if anomalies:
         st.subheader("Dokumente mit fehlendem Custom Field")
