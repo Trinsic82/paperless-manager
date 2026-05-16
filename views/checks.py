@@ -83,6 +83,13 @@ def render_custom_field_check(docs, doc_types, base_url):
         st.warning("Keine Custom Fields in Paperless gefunden.")
         return
     
+    # DEBUG: Zeige die verfügbaren Custom Fields
+    with st.expander("🔍 DEBUG: Verfügbare Custom Fields"):
+        st.json(custom_fields)
+        if docs:
+            st.write("**Struktur erstes Dokument (custom_fields):**")
+            st.json(docs[0].get('custom_fields'))
+    
     # Zeige Custom Fields als Checkboxen
     st.subheader("Wähle Custom Fields zum Prüfen:")
     selected_fields = []
