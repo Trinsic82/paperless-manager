@@ -102,47 +102,35 @@ def check_date_anomalies(docs, doc_types, base_url):
 def _resolve_field_value(document, field_path):
     """
     Versucht, einen verschachtelten Feldwert aus einem Dokument zu extrahieren.
-    Unterstützt: "field", "parent.child", "custom_fields.slug"
+    Für Custom Fields: field_path ist die Custom Field ID (int oder str).
+    Beispiel: "1" -> findet das Custom Field mit field: 1 in custom_fields Array
     """
+    # Spezialfall: Custom Field ID (numerisch)
+    try:
+        field_id = int(field_path)
+        custom_fields = document.get('custom_fields')
+        
+        if custom_fields is None:
+            return None
+        
+        # custom_fields ist ein Array von {value, field} Objekten
+        if isinstance(custom_fields, list):
+            for item in custom_fields:
+                if isinstance(item, dict) and item.get('field') == field_id:
+                    return item.get('value')
+            return None
+    except (ValueError, TypeError):
+        pass
+    
+    # Fallback für andere Pfade (nicht-custom-fields)
     parts = field_path.split('.')
-    if len(parts) != 2 or parts[0] != 'custom_fields':
-        # Fallback für nicht-custom-fields Pfade
-        value = document
-        for part in parts:
-            if isinstance(value, dict) and part in value:
-                value = value[part]
-            else:
-                return None
-        return value
-    
-    # Spezialfall: custom_fields.slug
-    slug = parts[1]
-    custom_fields = document.get('custom_fields')
-    
-    if custom_fields is None:
-        return None
-    
-    # Fall 1: custom_fields ist ein Dict mit Slug als Key
-    if isinstance(custom_fields, dict):
-        if slug in custom_fields:
-            cf_value = custom_fields[slug]
-            # Wenn es ein Dict ist, hole 'value' Key
-            if isinstance(cf_value, dict):
-                return cf_value.get('value')
-            return cf_value
-        return None
-    
-    # Fall 2: custom_fields ist ein Array von Objekten
-    if isinstance(custom_fields, list):
-        for item in custom_fields:
-            if not isinstance(item, dict):
-                continue
-            # Prüfe ob slug oder id passt
-            if item.get('slug') == slug or item.get('id') == slug:
-                return item.get('value')
-        return None
-    
-    return None
+    value = document
+    for part in parts:
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        else:
+            return None
+    return value
 
 
 def _is_field_filled(value):

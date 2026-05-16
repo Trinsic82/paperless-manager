@@ -44,18 +44,17 @@ def fetch_all(endpoint):
 def fetch_custom_fields():
     """Ruft alle verfügbaren Custom Fields aus Paperless ab."""
     custom_fields = fetch_all("custom_fields")
-    # Extrahiere Name, Slug und bereite den Pfad für Dokumentdaten vor
+    # Extrahiere Name, ID und bereite den Pfad für Dokumentdaten vor
     result = []
     for cf in custom_fields:
-        slug = cf.get('slug')
-        name = cf.get('name') or slug or str(cf.get('id'))
-        path = f"custom_fields.{slug}" if slug else f"custom_fields.{name}"
+        cf_id = cf.get('id')
+        name = cf.get('name') or str(cf_id)
         result.append({
-            'id': cf.get('id'),
+            'id': cf_id,
             'name': name,
-            'slug': slug,
+            'slug': cf.get('slug'),
             'data_type': cf.get('data_type'),
-            'path': path,
+            'path': cf_id,  # Nutze die ID als Pfad für Lookups
         })
     return result
 
