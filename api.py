@@ -40,6 +40,17 @@ def fetch_all(endpoint):
         except Exception: break
     return results
 
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_custom_fields():
+    """Ruft alle verfügbaren Custom Fields aus Paperless ab."""
+    custom_fields = fetch_all("custom_fields")
+    # Extrahiere nur Name und ID für die Anzeige
+    return [{
+        'id': cf.get('id'),
+        'name': cf.get('name'),
+        'data_type': cf.get('data_type')
+    } for cf in custom_fields]
+
 def update_document(doc_id, payload):
     base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     update_url = f"{base_url}/api/documents/{doc_id}/"

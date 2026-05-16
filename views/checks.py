@@ -7,6 +7,7 @@ from checks import (
     check_date_anomalies,
     check_custom_field_missing,
 )
+from api import fetch_custom_fields
 
 def render_path_check(docs, doc_types, st_paths, base_url):
     st.title("⚖️ Speicherpfad-Dokumenttyp-Check")
@@ -75,16 +76,36 @@ def render_custom_field_check(docs, doc_types, base_url):
     st.title("🧩 Custom Fields Check")
     st.write("Prüft, welche Dokumenttypen Custom Fields nicht gefüllt haben und zeigt fehlende Dokumente an.")
 
-    field_name = st.text_input("Custom Field Pfad", value="custom_fields")
-    if st.button("🔄 Check wiederholen", key="custom_fields_refresh"):
+    # Lade verfügbare Custom Fields
+    custom_fields = fetch_custom_fields()
+    
+    if not custom_fields:
+        st.warning("Keine Custom Fields in Paperless gefunden.")
+        return
+    
+    # Zeige Custom Fields als Checkboxen
+    st.subheader("Wähle Custom Fields zum Prüfen:")
+    selected_fields = []
+    
+    cols = st.columns(2)
+    for idx, cf in enumerate(custom_fields):
+        col = cols[idx % 2]
+        with col:
+            if st.checkbox(
+                f"{cf['name']} ({cf['data_type']})",
+                key=f"cf_{cf['id']}"
+            ):
+                selected_fields.append(cf['name'])
+    
+    if st.button("🔄 Check ausführen", key="custom_fields_refresh"):
         st.cache_data.clear()
         st.rerun()
 
-    if not field_name:
-        st.warning("Bitte gib einen Custom Field Pfad ein.")
+    if not selected_fields:
+        st.info("Wähle mindestens ein Custom Field, um den Check auszuführen.")
         return
 
-    anomalies, summary = check_custom_field_missing(docs, doc_types, field_name, base_url)
+    anomalies, summary = check_custom_field_missing(docs, doc_types, selected_fields, base_url)
 
     if summary:
         st.subheader("Zusammenfassung nach Dokumenttyp")
@@ -94,6 +115,7 @@ def render_custom_field_check(docs, doc_types, base_url):
             hide_index=True,
             column_config={
                 "Dokumenttyp": st.column_config.TextColumn(width=None),
+                "Custom Field": st.column_config.TextColumn(width=None),
                 "Gesamt": st.column_config.NumberColumn(width=None),
                 "Gefüllt": st.column_config.NumberColumn(width=None),
                 "Fehlend": st.column_config.NumberColumn(width=None),
