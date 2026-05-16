@@ -34,42 +34,27 @@ def render_list(docs, doc_types, corresp, st_paths, tags, base_url):
             filled_fields.append(field_name)
 
         doc_tags = [tags.get(tag_id, f"#{tag_id}") for tag_id in d.get('tags', [])]
+        dt_id = d.get('document_type')
+        cf_display = "; ".join(filled_fields) if filled_fields else ""
+        cf_link = f"{base_url}/documents/?document_type__id={dt_id}#{cf_display}" if cf_display and dt_id else ""
 
         filtered.append({
-            "Wählen": False,
             "ID": f"{base_url}/documents/{d['id']}/details",
             "Titel": d['title'],
             "Typ": dt,
             "Korrespondent": co,
             "Pfad": st_paths.get(d.get('storage_path'), "Standard"),
-            "Custom Fields": "; ".join(filled_fields) if filled_fields else "",
+            "Custom Fields": cf_link,
             "Tags": "; ".join(doc_tags) if doc_tags else ""
         })
     
     if filtered:
-        edited = st.data_editor(
+        st.dataframe(
             pd.DataFrame(filtered), hide_index=True, use_container_width=True,
             column_config={
-                "Wählen": st.column_config.CheckboxColumn(required=True, width=None),
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)
-            },
-            disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad", "Custom Fields", "Tags"]
+                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
+                "Custom Fields": st.column_config.LinkColumn("Custom Fields", display_text=r"#(.*)$", width=None)
+            }
         )
-        selected_ids = [int(url.split('/')[-2]) for url in edited[edited["Wählen"]]["ID"].tolist()]
-        
-        if selected_ids:
-            st.subheader(f"{len(selected_ids)} ausgewählt. Neue Werte:")
-            c1, c2, c3 = st.columns(3)
-            nt = c1.selectbox("Neuer Typ", ["-"] + list(doc_types.values()))
-            nc = c2.selectbox("Neuer Korrespondent", ["-"] + list(corresp.values()))
-            np = c3.selectbox("Neuer Pfad", ["-"] + list(st_paths.values()))
-            
-            if st.button("🚀 Änderungen anwenden", type="primary"):
-                pay = {}
-                if nt != "-": pay['document_type'] = {v:k for k,v in doc_types.items()}[nt]
-                if nc != "-": pay['correspondent'] = {v:k for k,v in corresp.items()}[nc]
-                if np != "-": pay['storage_path'] = {v:k for k,v in st_paths.items()}[np]
-                for sid in selected_ids: update_document(sid, pay)
-                st.success(f"{len(selected_ids)} erfolgreich aktualisiert!")
-                st.cache_data.clear()
-                st.rerun()
+    else:
+        st.info("Keine Dokumente mit den gewählten Filtern gefunden.")

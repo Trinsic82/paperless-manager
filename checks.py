@@ -232,4 +232,28 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
     return all_anomalies, all_summary
 
 
+def check_id_duplicates(docs, base_url):
+    """
+    Prüft Dokumente auf doppelte IDs.
+    Gleiche IDs sind fast immer ein Fehler.
+    """
+    id_counts = Counter([d.get('id') for d in docs])
+    duplicates = []
+    
+    for doc_id, count in id_counts.items():
+        if count > 1:
+            # Finde alle Dokumente mit dieser ID
+            docs_with_id = [d for d in docs if d.get('id') == doc_id]
+            for d in docs_with_id:
+                duplicates.append({
+                    'ID': f"{base_url}/documents/{d['id']}/details",
+                    'Titel': d.get('title', ''),
+                    'Dokumenttyp': d.get('document_type', ''),
+                    'Erstellt': d.get('created', ''),
+                    'Duplikate': count
+                })
+    
+    return duplicates
+
+
 # Hier können in Zukunft weitere Prüfungen hinzugefügt werden.

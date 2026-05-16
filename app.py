@@ -11,6 +11,7 @@ from views.checks import (
     render_doctype_check,
     render_date_check,
     render_custom_field_check,
+    render_id_duplicate_check,
 )
 from views.list import render_list
 
@@ -59,6 +60,7 @@ elif category == "Checks":
             "Dokumenttypen-Check",
             "Datums-Check",
             "Custom Fields-Check",
+            "ID-Duplikat-Check",
         ]
     )
 elif category == "Gesamtliste":
@@ -130,6 +132,9 @@ elif page == "Custom Fields-Check":
         base_url,
         warning_threshold=st.session_state["CUSTOM_FIELD_WARNING_THRESHOLD"],
     )
+
+elif page == "ID-Duplikat-Check":
+    render_id_duplicate_check(docs, base_url)
 
 elif page == "Gesamtliste":
     render_list(docs, doc_types, corresp, st_paths, tags, base_url)

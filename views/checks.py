@@ -6,6 +6,7 @@ from checks import (
     check_path_consistency,
     check_date_anomalies,
     check_custom_field_missing,
+    check_id_duplicates,
 )
 from api import fetch_custom_fields
 
@@ -192,3 +193,31 @@ def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
         )
     elif not summary:
         st.success("Alle Custom Fields sind für alle Dokumenttypen gefüllt.")
+
+
+def render_id_duplicate_check(docs, base_url):
+    st.title("🆔 ID-Duplikat-Check")
+    st.write("Sucht nach Dokumenten mit doppelten IDs. Dies ist normalerweise ein Fehler.")
+    if st.button("🔄 Check wiederholen", key="id_duplicate_refresh"):
+        st.cache_data.clear()
+        st.rerun()
+
+    duplicates = check_id_duplicates(docs, base_url)
+
+    if duplicates:
+        df_duplicates = pd.DataFrame(duplicates)
+        st.warning(f"⚠️ {len(df_duplicates)} Dokumente mit doppelten IDs gefunden!")
+        st.dataframe(
+            df_duplicates.sort_values("Duplikate", ascending=False),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
+                "Dokumenttyp": st.column_config.TextColumn(width=None),
+                "Titel": st.column_config.TextColumn(width=None),
+                "Erstellt": st.column_config.TextColumn(width=None),
+                "Duplikate": st.column_config.NumberColumn(width=None),
+            }
+        )
+    else:
+        st.success("Keine Duplikate gefunden! Alle IDs sind eindeutig.")
