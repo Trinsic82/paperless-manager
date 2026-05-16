@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from collections import Counter
-from checks import check_path_consistency, check_date_anomalies
+from checks import check_document_types_count, check_path_consistency, check_date_anomalies
 
 def render_path_check(docs, doc_types, st_paths, base_url):
     st.title("⚖️ Speicherpfad-Dokumenttyp-Check")
@@ -28,21 +28,11 @@ def render_doctype_check(docs, doc_types, base_url):
         st.cache_data.clear()
         st.rerun()
 
-    type_counts = Counter([d.get('document_type') for d in docs])
-    few_docs = []
-    for dt_id, count in type_counts.items():
-        if count < 5:
-            dt_name = doc_types.get(dt_id, "Ohne Typ")
-            if dt_id is not None:
-                link = f"{base_url}/documents/?document_type__id={dt_id}#{dt_name}"
-            else:
-                link = f"{base_url}/documents/?document_type__isnull=true#{dt_name}"
-            few_docs.append({"Dokumenttyp": link, "Anzahl": count})
-    
+    few_docs = check_document_types_count(docs, doc_types, base_url)
     if few_docs:
         st.dataframe(
-            pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True), 
-            hide_index=True, 
+            pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True),
+            hide_index=True,
             use_container_width=True,
             column_config={
                 "Dokumenttyp": st.column_config.LinkColumn("Dokumenttyp", display_text=r"#(.*)$")

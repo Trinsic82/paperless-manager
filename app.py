@@ -14,9 +14,9 @@ st.set_page_config(page_title="Paperless Metadata Manager", page_icon="📄", la
 
 # --- Session State Initialisierung ---
 if "PAPERLESS_URL" not in st.session_state:
-    st.session_state["PAPERLESS_URL"] = os.environ.get("PAPERLESS_URL", "http://192.168.5.136:8000")
+    st.session_state["PAPERLESS_URL"] = os.environ.get("PAPERLESS_URL", "")
 if "PAPERLESS_TOKEN" not in st.session_state:
-    st.session_state["PAPERLESS_TOKEN"] = os.environ.get("PAPERLESS_TOKEN", "9f825c85ecf5f0ca2b197986d0115d7c061cc3b4")
+    st.session_state["PAPERLESS_TOKEN"] = os.environ.get("PAPERLESS_TOKEN", "")
 if "IS_CONNECTED" not in st.session_state:
     st.session_state["IS_CONNECTED"] = False
 
@@ -53,11 +53,13 @@ st.sidebar.divider()
 status_placeholder = st.sidebar.empty()
 
 # --- DATEN LADEN ---
+base_url = None
 if page not in ["Startseite", "Konfiguration"]:
     if not st.session_state["IS_CONNECTED"]:
         st.warning("Bitte stelle zuerst unter Konfiguration eine Verbindung her.")
         st.stop()
     
+    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     with st.spinner("Lade Daten..."):
         docs = fetch_all('documents')
         doc_types = {dt['id']: dt['name'] for dt in fetch_all('document_types')}
@@ -77,23 +79,18 @@ elif page == "Konfiguration":
     render_config()
 
 elif page == "Metadaten Analyse":
-    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     render_analysis(docs, doc_types, corresp, st_paths, tags, base_url)
 
 elif page == "Speicherpfad-Dokumenttyp-Check":
-    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     render_path_check(docs, doc_types, st_paths, base_url)
 
 elif page == "Dokumenttypen-Check":
-    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     render_doctype_check(docs, doc_types, base_url)
 
 elif page == "Datums-Check":
-    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     render_date_check(docs, doc_types, base_url)
 
 elif page == "Gesamtliste":
-    base_url = st.session_state['PAPERLESS_URL'].strip().rstrip('/')
     render_list(docs, doc_types, corresp, st_paths, base_url)
 
 # Status Update
