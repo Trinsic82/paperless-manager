@@ -3,7 +3,7 @@ import pandas as pd
 from api import update_document, fetch_custom_fields
 
 
-def render_list(docs, doc_types, corresp, st_paths, base_url):
+def render_list(docs, doc_types, corresp, st_paths, tags, base_url):
     st.title("Gesamtliste")
     if st.button("🔄 Liste aktualisieren"):
         st.cache_data.clear()
@@ -33,6 +33,8 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
             field_name = cf_names.get(cf.get('field'), f"#{cf.get('field')}")
             filled_fields.append(field_name)
 
+        doc_tags = [tags.get(tag_id, f"#{tag_id}") for tag_id in d.get('tags', [])]
+
         filtered.append({
             "Wählen": False,
             "ID": f"{base_url}/documents/{d['id']}/details",
@@ -40,7 +42,8 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
             "Typ": dt,
             "Korrespondent": co,
             "Pfad": st_paths.get(d.get('storage_path'), "Standard"),
-            "Custom Fields": "; ".join(filled_fields) if filled_fields else ""
+            "Custom Fields": "; ".join(filled_fields) if filled_fields else "",
+            "Tags": "; ".join(doc_tags) if doc_tags else ""
         })
     
     if filtered:
@@ -50,7 +53,7 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
                 "Wählen": st.column_config.CheckboxColumn(required=True, width=None),
                 "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)
             },
-            disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad", "Custom Fields"]
+            disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad", "Custom Fields", "Tags"]
         )
         selected_ids = [int(url.split('/')[-2]) for url in edited[edited["Wählen"]]["ID"].tolist()]
         

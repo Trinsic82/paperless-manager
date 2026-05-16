@@ -132,7 +132,7 @@ elif page == "Custom Fields-Check":
     )
 
 elif page == "Gesamtliste":
-    render_list(docs, doc_types, corresp, st_paths, base_url)
+    render_list(docs, doc_types, corresp, st_paths, tags, base_url)
 
 # Status Update
 if st.session_state["IS_CONNECTED"]: 
