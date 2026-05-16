@@ -195,19 +195,24 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
 
         summary = []
         for dt_name, counts in type_summary.items():
-            if counts['missing'] > 0:
-                if counts['filled'] == 0:
-                    status = 'Feld in allen Dokumenten fehlend'
-                else:
-                    status = f"{counts['missing']} von {counts['missing'] + counts['filled']} fehlend"
-                summary.append({
-                    'Dokumenttyp': dt_name,
-                    'Custom Field': field_display,
-                    'Gesamt': counts['missing'] + counts['filled'],
-                    'Gefüllt': counts['filled'],
-                    'Fehlend': counts['missing'],
-                    'Status': status,
-                })
+            if counts['filled'] == 0 and counts['missing'] == 0:
+                continue  # Dokumenttyp ohne Dokumente
+                
+            if counts['missing'] == 0:
+                status = 'Vollständig gefüllt'
+            elif counts['filled'] == 0:
+                status = 'Feld in allen Dokumenten fehlend'
+            else:
+                status = f"{counts['missing']} von {counts['missing'] + counts['filled']} fehlend"
+                
+            summary.append({
+                'Dokumenttyp': dt_name,
+                'Custom Field': field_display,
+                'Gesamt': counts['missing'] + counts['filled'],
+                'Gefüllt': counts['filled'],
+                'Fehlend': counts['missing'],
+                'Status': status,
+            })
         
         all_anomalies.extend(anomalies)
         all_summary.extend(summary)
