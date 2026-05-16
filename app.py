@@ -6,7 +6,12 @@ from api import fetch_all
 from views.home import render_home
 from views.config import render_config
 from views.analysis import render_analysis
-from views.checks import render_path_check, render_doctype_check, render_date_check
+from views.checks import (
+    render_path_check,
+    render_doctype_check,
+    render_date_check,
+    render_custom_field_check,
+)
 from views.list import render_list
 
 # --- Seiten-Konfiguration ---
@@ -38,7 +43,12 @@ elif category == "Metadaten Analyse":
 elif category == "Checks":
     page = st.sidebar.radio(
         "Verfügbare Checks:",
-        ["Speicherpfad-Dokumenttyp-Check", "Dokumenttypen-Check", "Datums-Check"]
+        [
+            "Speicherpfad-Dokumenttyp-Check",
+            "Dokumenttypen-Check",
+            "Datums-Check",
+            "Custom Fields-Check",
+        ]
     )
 elif category == "Gesamtliste":
     page = "Gesamtliste"
@@ -89,6 +99,9 @@ elif page == "Dokumenttypen-Check":
 
 elif page == "Datums-Check":
     render_date_check(docs, doc_types, base_url)
+
+elif page == "Custom Fields-Check":
+    render_custom_field_check(docs, doc_types, base_url)
 
 elif page == "Gesamtliste":
     render_list(docs, doc_types, corresp, st_paths, base_url)

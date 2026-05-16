@@ -5,6 +5,7 @@ Eine leichtgewichtige Streamlit Web-App zum Aufspüren von Metadaten-Anomalien u
 Dieses Projekt bietet eine Web-Oberfläche für:
 - Analyse von Dokumentenmetadaten
 - Identifikation von Speicherpfad- und Datumsanomalien
+- Prüfung auf fehlende Custom Fields pro Dokumenttyp
 - Filterbaren Link-Export zu Paperless-ngx
 - Massenbearbeitung von Dokumenttyp, Korrespondent und Speicherpfad
 

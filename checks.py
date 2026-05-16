@@ -98,4 +98,73 @@ def check_date_anomalies(docs, doc_types, base_url):
                 })
     return date_anomalies
 
+
+def _resolve_field_value(document, field_path):
+    value = document
+    for part in field_path.split('.'):
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        else:
+            return None
+    return value
+
+
+def _is_field_filled(value):
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value.strip() != ""
+    if isinstance(value, (list, tuple, set, dict)):
+        return len(value) > 0
+    return True
+
+
+def check_custom_field_missing(docs, doc_types, field_name, base_url):
+    """
+    Findet Dokumente, bei denen das benannte Custom Field fehlt oder leer ist.
+    """
+    anomalies = []
+    type_summary = {}
+
+    for d in docs:
+        dt_id = d.get('document_type')
+        dt_name = doc_types.get(dt_id, 'Ohne Typ')
+        if dt_id is None:
+            continue
+
+        value = _resolve_field_value(d, field_name)
+        filled = _is_field_filled(value)
+
+        if dt_name not in type_summary:
+            type_summary[dt_name] = {'filled': 0, 'missing': 0}
+
+        if filled:
+            type_summary[dt_name]['filled'] += 1
+        else:
+            type_summary[dt_name]['missing'] += 1
+            anomalies.append({
+                'ID': f"{base_url}/documents/{d['id']}/details",
+                'Titel': d.get('title', ''),
+                'Dokumenttyp': dt_name,
+                'Custom Field': field_name,
+                'Wert': value if value is not None else '',
+            })
+
+    summary = []
+    for dt_name, counts in type_summary.items():
+        if counts['missing'] > 0:
+            if counts['filled'] == 0:
+                status = 'Feld in allen Dokumenten fehlend'
+            else:
+                status = f"{counts['missing']} von {counts['missing'] + counts['filled']} fehlend"
+            summary.append({
+                'Dokumenttyp': dt_name,
+                'Gesamt': counts['missing'] + counts['filled'],
+                'Gefüllt': counts['filled'],
+                'Fehlend': counts['missing'],
+                'Status': status,
+            })
+
+    return anomalies, summary
+
 # Hier können in Zukunft weitere Prüfungen hinzugefügt werden.
