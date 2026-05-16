@@ -20,7 +20,7 @@ def render_config():
         value=st.session_state["DATE_FUTURE_THRESHOLD"],
     )
     new_date_min_year_offset = st.number_input(
-        "Minimale Jahre unter dem 5. Perzentil für den Datums-Check",
+        "Jahre unterhalb des unteren 5%-Datums für den Datums-Check",
         min_value=0,
         step=1,
         value=st.session_state["DATE_MIN_YEAR_OFFSET"],
@@ -31,7 +31,7 @@ def render_config():
         step=1,
         value=st.session_state["DATE_ISOLATION_GAP_YEARS"],
     )
-    new_custom_field_warning = st.slider(
+    new_custom_field_warning = st.number_input(
         "Custom Fields Warnschwelle (%)",
         min_value=0,
         max_value=100,

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from api import update_document
+from api import update_document, fetch_custom_fields
+
 
 def render_list(docs, doc_types, corresp, st_paths, base_url):
     st.title("Gesamtliste")
@@ -12,19 +13,34 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
     f_type = col1.selectbox("Typ Filter", ["Alle"] + list(doc_types.values()))
     f_corr = col2.selectbox("Korrespondent Filter", ["Alle", "Ohne"] + list(corresp.values()))
     
+    custom_fields = fetch_custom_fields()
+    cf_names = {cf['id']: cf['name'] for cf in custom_fields}
+
     filtered = []
     for d in docs:
         dt, co = doc_types.get(d.get('document_type'), ""), corresp.get(d.get('correspondent'), "")
         if f_type != "Alle" and dt != f_type: continue
         if f_corr == "Ohne" and co != "": continue
         if f_corr != "Alle" and f_corr != "Ohne" and co != f_corr: continue
+
+        filled_fields = []
+        for cf in d.get('custom_fields', []) or []:
+            if not isinstance(cf, dict):
+                continue
+            value = cf.get('value')
+            if value is None or (isinstance(value, str) and value.strip() == ""):
+                continue
+            field_name = cf_names.get(cf.get('field'), f"#{cf.get('field')}")
+            filled_fields.append(field_name)
+
         filtered.append({
-            "Wählen": False, 
-            "ID": f"{base_url}/documents/{d['id']}/details", 
-            "Titel": d['title'], 
-            "Typ": dt, 
-            "Korrespondent": co, 
-            "Pfad": st_paths.get(d.get('storage_path'), "Standard")
+            "Wählen": False,
+            "ID": f"{base_url}/documents/{d['id']}/details",
+            "Titel": d['title'],
+            "Typ": dt,
+            "Korrespondent": co,
+            "Pfad": st_paths.get(d.get('storage_path'), "Standard"),
+            "Custom Fields": "; ".join(filled_fields) if filled_fields else ""
         })
     
     if filtered:
@@ -34,7 +50,7 @@ def render_list(docs, doc_types, corresp, st_paths, base_url):
                 "Wählen": st.column_config.CheckboxColumn(required=True, width=None),
                 "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)
             },
-            disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad"]
+            disabled=["ID", "Titel", "Typ", "Korrespondent", "Pfad", "Custom Fields"]
         )
         selected_ids = [int(url.split('/')[-2]) for url in edited[edited["Wählen"]]["ID"].tolist()]
         
