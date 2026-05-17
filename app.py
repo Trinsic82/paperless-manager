@@ -48,8 +48,8 @@ page = st.session_state["PAGE"]
 
 NAV_SECTIONS = [
     (None, ["dashboard", "configuration"]),
-    ("basics", ["administration", "all_documents", "id_duplicates"]),
-    ("doc_types", ["document_type_usage", "storage_path_anomalies", "custom_field_anomalies"]),
+    ("basics", ["administration", "all_documents", "id_duplicates", "document_type_usage"]),
+    ("doc_types", ["storage_path_anomalies", "custom_field_anomalies"]),
     ("correspondents", ["correspondent_usage"]),
     ("date", ["date_anomalies"]),
 ]
