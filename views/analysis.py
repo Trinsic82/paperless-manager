@@ -8,89 +8,60 @@ def _build_link(label, url):
 
 
 def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url, language="de"):
-    st.title(translate(language, "analysis.document_type_usage_title"))
-    refresh_label = translate(language, "analysis.analysis_refresh")
-    if st.button(refresh_label):
+    st.title(translate(language, "nav.pages.document_type_usage"))
+    if st.button(translate(language, "analysis.document_type_usage_button"), key="document_type_usage_button"):
         st.cache_data.clear()
 
-    type_counts = Counter([d.get('document_type') for d in docs])
-    corr_counts = Counter([d.get('correspondent') for d in docs])
-    path_counts = Counter([d.get('storage_path') for d in docs])
-    tag_counts = Counter([t for d in docs for t in d.get('tags', [])])
+    st.subheader(translate(language, "analysis.document_type_usage_heading"))
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.subheader(translate(language, "analysis.document_types"))
-        df_types = pd.DataFrame([
-            {
-                translate(language, "analysis.document_types"): _build_link(
-                    doc_types.get(k, translate(language, "analysis.unknown")),
-                    f"{base_url}/documents/?document_type__id={k}" if k is not None else f"{base_url}/documents/?document_type__isnull=true"
-                ),
-                translate(language, "analysis.count"): v,
-            }
-            for k, v in type_counts.items()
-        ])
+    threshold = st.session_state.get("DOC_TYPE_COUNT_THRESHOLD", 5)
+    type_counts = Counter([d.get('document_type') for d in docs])
+
+    anomalies = []
+    for dt_id, count in sorted(type_counts.items(), key=lambda item: item[1]):
+        if count < threshold:
+            dt_name = doc_types.get(dt_id, translate(language, "analysis.unknown"))
+            if dt_id is not None:
+                link = _build_link(dt_name, f"{base_url}/documents/?document_type__id={dt_id}")
+            else:
+                link = _build_link(dt_name, f"{base_url}/documents/?document_type__isnull=true")
+            anomalies.append({
+                translate(language, "analysis.document_types"): link,
+                translate(language, "analysis.count"): count,
+            })
+
+    st.subheader(translate(language, "analysis.document_type_usage_anomaly_title", threshold=threshold))
+    if anomalies:
         st.dataframe(
-            df_types.sort_values(translate(language, "analysis.count"), ascending=False),
+            pd.DataFrame(anomalies),
             hide_index=True,
             use_container_width=True,
-            column_config={translate(language, "analysis.document_types"): st.column_config.LinkColumn(translate(language, "analysis.document_types"), display_text=r"#(.*)$", width=None)}
+            column_config={
+                translate(language, "analysis.document_types"): st.column_config.LinkColumn(translate(language, "analysis.document_types"), display_text=r"#(.*)$", width=None),
+            },
         )
-    with c2:
-        st.subheader(translate(language, "analysis.correspondents"))
-        df_corr = pd.DataFrame([
-            {
-                translate(language, "analysis.correspondents"): _build_link(
-                    corresp.get(k, translate(language, "analysis.unknown")),
-                    f"{base_url}/documents/?correspondent__id={k}" if k is not None else f"{base_url}/documents/?correspondent__isnull=true"
-                ),
-                translate(language, "analysis.count"): v,
-            }
-            for k, v in corr_counts.items()
-        ])
-        st.dataframe(
-            df_corr.sort_values(translate(language, "analysis.count"), ascending=False),
-            hide_index=True,
-            use_container_width=True,
-            column_config={translate(language, "analysis.correspondents"): st.column_config.LinkColumn(translate(language, "analysis.correspondents"), display_text=r"#(.*)$", width=None)}
-        )
-    with c3:
-        st.subheader(translate(language, "analysis.storage_paths"))
-        df_paths = pd.DataFrame([
-            {
-                translate(language, "analysis.storage_paths"): _build_link(
-                    st_paths.get(k, translate(language, "common.standard")),
-                    f"{base_url}/documents/?storage_path__id={k}" if k is not None else f"{base_url}/documents/?storage_path__isnull=true"
-                ),
-                translate(language, "analysis.count"): v,
-            }
-            for k, v in path_counts.items()
-        ])
-        st.dataframe(
-            df_paths.sort_values(translate(language, "analysis.count"), ascending=False),
-            hide_index=True,
-            use_container_width=True,
-            column_config={translate(language, "analysis.storage_paths"): st.column_config.LinkColumn(translate(language, "analysis.storage_paths"), display_text=r"#(.*)$", width=None)}
-        )
-    with c4:
-        st.subheader(translate(language, "analysis.tags"))
-        df_tags = pd.DataFrame([
-            {
-                translate(language, "analysis.tags"): _build_link(
-                    tags.get(k, translate(language, "analysis.unknown")),
-                    f"{base_url}/documents/?tags__id={k}" if k is not None else f"{base_url}/documents/?tags__isnull=true"
-                ),
-                translate(language, "analysis.count"): v,
-            }
-            for k, v in tag_counts.items()
-        ])
-        st.dataframe(
-            df_tags.sort_values(translate(language, "analysis.count"), ascending=False),
-            hide_index=True,
-            use_container_width=True,
-            column_config={translate(language, "analysis.tags"): st.column_config.LinkColumn(translate(language, "analysis.tags"), display_text=r"#(.*)$", width=None)}
-        )
+    else:
+        st.success(translate(language, "checks.doctype_no_results", threshold=threshold))
+
+    st.subheader(translate(language, "analysis.document_type_usage_list_title"))
+    df_types = pd.DataFrame([
+        {
+            translate(language, "analysis.document_types"): _build_link(
+                doc_types.get(k, translate(language, "analysis.unknown")),
+                f"{base_url}/documents/?document_type__id={k}" if k is not None else f"{base_url}/documents/?document_type__isnull=true"
+            ),
+            translate(language, "analysis.count"): v,
+        }
+        for k, v in sorted(type_counts.items(), key=lambda item: item[1], reverse=True)
+    ])
+    st.dataframe(
+        df_types,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            translate(language, "analysis.document_types"): st.column_config.LinkColumn(translate(language, "analysis.document_types"), display_text=r"#(.*)$", width=None),
+        },
+    )
 
 
 def render_correspondent_usage(docs, corresp, st_paths, base_url, language="de"):
