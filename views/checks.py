@@ -6,6 +6,7 @@ from checks import (
     check_path_consistency,
     check_date_anomalies,
     check_custom_field_missing,
+    check_custom_field_missing_by_correspondent,
     check_id_duplicates,
 )
 from api import fetch_custom_fields
@@ -91,22 +92,35 @@ def render_date_check(
         st.success("Keine Datums-Anomalien gefunden!")
 
 
-def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
-    st.title("🧩 Custom Fields Check")
-    st.write("Prüft, welche Dokumenttypen Custom Fields nicht gefüllt haben und zeigt fehlende Dokumente an.")
-    st.write(f"Dokumenttyp-Kombinationen mit mindestens {warning_threshold}% Befüllung, aber nicht 100%, werden als potenzielle Anomalie markiert.")
+def _build_paperless_filter_link(base_url, filter_field, group_id, display):
+    if group_id is None:
+        return f"{base_url}/documents/?{filter_field}__isnull=true#{display}"
+    return f"{base_url}/documents/?{filter_field}__id={group_id}#{display}"
 
-    # Lade verfügbare Custom Fields
+
+def _render_custom_field_group_check(
+    docs,
+    group_names,
+    base_url,
+    warning_threshold,
+    title,
+    group_label,
+    filter_field,
+    check_function,
+):
+    st.title(title)
+    st.write(f"Prüft, welche {group_label.lower()}bezogenen Custom Fields nicht gefüllt haben und zeigt fehlende Dokumente an.")
+    st.write(
+        f"{group_label}-CustomField-Kombinationen mit mindestens {warning_threshold}% Befüllung, aber nicht 100%, werden als potenzielle Anomalie markiert."
+    )
+
     custom_fields = fetch_custom_fields()
-    
     if not custom_fields:
         st.warning("Keine Custom Fields in Paperless gefunden.")
         return
-    
-    # Zeige Custom Fields als Checkboxen
+
     st.subheader("Wähle Custom Fields zum Prüfen:")
     selected_fields = []
-    
     cols = st.columns(2)
     for idx, cf in enumerate(custom_fields):
         col = cols[idx % 2]
@@ -116,11 +130,11 @@ def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
                 label += f" ({cf['slug']})"
             if st.checkbox(
                 f"{label} — {cf['data_type']}",
-                key=f"cf_{cf['id']}"
+                key=f"cf_{cf['id']}_{filter_field}",
             ):
                 selected_fields.append({'path': cf['path'], 'name': cf['name']})
-    
-    if st.button("🔄 Check ausführen", key="custom_fields_refresh"):
+
+    if st.button("🔄 Check ausführen", key=f"custom_fields_refresh_{filter_field}"):
         st.cache_data.clear()
         st.rerun()
 
@@ -128,31 +142,42 @@ def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
         st.info("Wähle mindestens ein Custom Field, um den Check auszuführen.")
         return
 
-    anomalies, summary = check_custom_field_missing(docs, doc_types, selected_fields, base_url)
+    anomalies, summary = check_function(docs, group_names, selected_fields, base_url)
 
-    # Neue Sektion: Dokumenttypen mit hohem, aber nicht vollständigem Befüllungsgrad
+    for row in summary:
+        group_id = row.pop('GroupID')
+        group_name = row.pop('Group')
+        row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
+        row['Custom Field'] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+
+    for row in anomalies:
+        group_id = row.pop('GroupID')
+        group_name = row.pop('Group')
+        row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
+        row['Custom Field'] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+
     st.subheader(f"⚠️ Potenzielle Anomalien ({warning_threshold}%–99% befüllt)")
     st.write(
-        f"Diese Dokumenttyp-CustomField-Kombinationen sind mindestens {warning_threshold}% befüllt, aber nicht 100%."
+        f"Diese {group_label}-CustomField-Kombinationen sind mindestens {warning_threshold}% befüllt, aber nicht 100%."
     )
-    
+
     potential_issues = [
         s for s in summary
         if s['Gesamt'] > 0
         and (s['Gefüllt'] / s['Gesamt'] * 100) >= warning_threshold
         and s['Gefüllt'] < s['Gesamt']
     ]
-    
+
     if potential_issues:
         df_issues = pd.DataFrame(potential_issues).copy()
         df_issues['Befüllung %'] = (df_issues['Gefüllt'] / df_issues['Gesamt'] * 100).round(1).astype(str) + '%'
         st.dataframe(
-            df_issues.sort_values("Befüllung %", ascending=False)[["Dokumenttyp", "Custom Field", "Gesamt", "Gefüllt", "Fehlend", "Befüllung %"]],
+            df_issues.sort_values("Befüllung %", ascending=False)[[group_label, "Custom Field", "Gesamt", "Gefüllt", "Fehlend", "Befüllung %"]],
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Dokumenttyp": st.column_config.TextColumn(width=None),
-                "Custom Field": st.column_config.TextColumn(width=None),
+                group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
+                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
                 "Gesamt": st.column_config.NumberColumn(width=None),
                 "Gefüllt": st.column_config.NumberColumn(width=None),
                 "Fehlend": st.column_config.NumberColumn(width=None),
@@ -163,14 +188,14 @@ def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
         st.success("Keine Anomalien gefunden - alle CustomField-Kombinationen sind entweder <75% oder 100% befüllt.")
 
     if summary:
-        st.subheader("Zusammenfassung nach Dokumenttyp - Custom Fields-Check")
+        st.subheader(f"Zusammenfassung nach {group_label} - Custom Fields-Check")
         st.dataframe(
             pd.DataFrame(summary).sort_values(["Fehlend", "Gesamt"], ascending=[False, False]),
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Dokumenttyp": st.column_config.TextColumn(width=None),
-                "Custom Field": st.column_config.TextColumn(width=None),
+                group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
+                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
                 "Gesamt": st.column_config.NumberColumn(width=None),
                 "Gefüllt": st.column_config.NumberColumn(width=None),
                 "Fehlend": st.column_config.NumberColumn(width=None),
@@ -186,13 +211,39 @@ def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
             hide_index=True,
             column_config={
                 "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
-                "Dokumenttyp": st.column_config.TextColumn(width=None),
-                "Custom Field": st.column_config.TextColumn(width=None),
+                group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
+                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
                 "Wert": st.column_config.TextColumn(width=None),
             }
         )
     elif not summary:
-        st.success("Alle Custom Fields sind für alle Dokumenttypen gefüllt.")
+        st.success("Alle Custom Fields sind für alle Dokumente gefüllt.")
+
+
+def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
+    _render_custom_field_group_check(
+        docs,
+        doc_types,
+        base_url,
+        warning_threshold,
+        "🧩 Custom Fields Check",
+        "Dokumenttyp",
+        "document_type",
+        check_custom_field_missing,
+    )
+
+
+def render_custom_field_correspondent_check(docs, corresp, base_url, warning_threshold=75):
+    _render_custom_field_group_check(
+        docs,
+        corresp,
+        base_url,
+        warning_threshold,
+        "🧩 Custom Fields Check - Korrespondenten",
+        "Korrespondent",
+        "correspondent",
+        check_custom_field_missing_by_correspondent,
+    )
 
 
 def render_id_duplicate_check(docs, base_url):

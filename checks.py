@@ -150,11 +150,7 @@ def _is_field_filled(value):
     return True
 
 
-def check_custom_field_missing(docs, doc_types, field_names, base_url):
-    """
-    Findet Dokumente, bei denen die benannten Custom Fields fehlen oder leer sind.
-    field_names kann ein String, eine Liste von Strings oder eine Liste von Dictionaries sein.
-    """
+def _normalize_field_names(field_names):
     normalized_fields = []
     if isinstance(field_names, (str, dict)):
         field_names = [field_names]
@@ -170,66 +166,93 @@ def check_custom_field_missing(docs, doc_types, field_names, base_url):
                 'path': field,
                 'display': field,
             })
+    return normalized_fields
 
+
+def _check_custom_field_missing_by_group(docs, group_key, group_names, field_names, base_url, skip_null_group=False):
+    normalized_fields = _normalize_field_names(field_names)
     all_anomalies = []
     all_summary = []
-    
-    # Prüfe jeden Field einzeln
+
     for field_info in normalized_fields:
         field_path = field_info['path']
         field_display = field_info['display']
         anomalies = []
-        type_summary = {}
+        group_summary = {}
 
         for d in docs:
-            dt_id = d.get('document_type')
-            dt_name = doc_types.get(dt_id, 'Ohne Typ')
-            if dt_id is None:
+            group_id = d.get(group_key)
+            if skip_null_group and group_id is None:
                 continue
 
+            group_name = group_names.get(group_id, 'Ohne') if group_id is not None else 'Ohne'
             value = _resolve_field_value(d, field_path)
             filled = _is_field_filled(value)
 
-            if dt_name not in type_summary:
-                type_summary[dt_name] = {'filled': 0, 'missing': 0}
+            if group_name not in group_summary:
+                group_summary[group_name] = {'id': group_id, 'filled': 0, 'missing': 0}
 
             if filled:
-                type_summary[dt_name]['filled'] += 1
+                group_summary[group_name]['filled'] += 1
             else:
-                type_summary[dt_name]['missing'] += 1
+                group_summary[group_name]['missing'] += 1
                 anomalies.append({
                     'ID': f"{base_url}/documents/{d['id']}/details",
                     'Titel': d.get('title', ''),
-                    'Dokumenttyp': dt_name,
+                    'Group': group_name,
+                    'GroupID': group_id,
                     'Custom Field': field_display,
                     'Wert': value if value is not None else '',
                 })
 
         summary = []
-        for dt_name, counts in type_summary.items():
+        for group_name, counts in group_summary.items():
             if counts['filled'] == 0 and counts['missing'] == 0:
-                continue  # Dokumenttyp ohne Dokumente
-                
+                continue
+
             if counts['missing'] == 0:
                 status = 'Vollständig gefüllt'
             elif counts['filled'] == 0:
                 status = 'Feld in allen Dokumenten fehlend'
             else:
                 status = f"{counts['missing']} von {counts['missing'] + counts['filled']} fehlend"
-                
+
             summary.append({
-                'Dokumenttyp': dt_name,
+                'Group': group_name,
+                'GroupID': counts['id'],
                 'Custom Field': field_display,
                 'Gesamt': counts['missing'] + counts['filled'],
                 'Gefüllt': counts['filled'],
                 'Fehlend': counts['missing'],
                 'Status': status,
             })
-        
+
         all_anomalies.extend(anomalies)
         all_summary.extend(summary)
 
     return all_anomalies, all_summary
+
+
+def check_custom_field_missing(docs, doc_types, field_names, base_url):
+    return _check_custom_field_missing_by_group(
+        docs,
+        'document_type',
+        doc_types,
+        field_names,
+        base_url,
+        skip_null_group=True,
+    )
+
+
+def check_custom_field_missing_by_correspondent(docs, corresp, field_names, base_url):
+    return _check_custom_field_missing_by_group(
+        docs,
+        'correspondent',
+        corresp,
+        field_names,
+        base_url,
+        skip_null_group=False,
+    )
 
 
 def check_id_duplicates(docs, base_url):
