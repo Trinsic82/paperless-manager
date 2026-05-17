@@ -172,16 +172,18 @@ def _render_custom_field_group_check(
     for row in summary:
         group_id = row.pop('GroupID')
         group_name = row.pop('Group')
+        cf_value = row.pop('Custom Field', None)
         row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
-        row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
-        row.pop('Custom Field', None)
+        if cf_value is not None:
+            row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, cf_value)
 
     for row in anomalies:
         group_id = row.pop('GroupID')
         group_name = row.pop('Group')
+        cf_value = row.pop('Custom Field', None)
         row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
-        row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
-        row.pop('Custom Field', None)
+        if cf_value is not None:
+            row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, cf_value)
 
     st.subheader(translate(language, "checks.custom_fields_warning", warning_threshold=warning_threshold))
     st.write(translate(language, "checks.custom_fields_warning_intro", group_label=group_label, warning_threshold=warning_threshold))
