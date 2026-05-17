@@ -17,7 +17,6 @@ def render_path_check(docs, doc_types, st_paths, base_url):
     st.title(translate(language, "checks.path_check_title"))
     if st.button(translate(language, "checks.check_refresh")):
         st.cache_data.clear()
-        st.rerun()
 
     anomalies = check_path_consistency(docs, doc_types, st_paths, base_url)
     
@@ -47,7 +46,6 @@ def render_doctype_check(docs, doc_types, base_url, threshold=5):
     st.write(translate(language, "checks.doctype_check_description", threshold=threshold))
     if st.button(translate(language, "checks.check_refresh"), key="doctype_refresh"):
         st.cache_data.clear()
-        st.rerun()
 
     few_docs = check_document_types_count(docs, doc_types, base_url, threshold=threshold)
     if few_docs:
@@ -88,7 +86,6 @@ def render_date_check(
     )
     if st.button(translate(language, "checks.check_refresh"), key="date_refresh"):
         st.cache_data.clear()
-        st.rerun()
 
     date_anomalies = check_date_anomalies(
         docs,
@@ -165,7 +162,6 @@ def _render_custom_field_group_check(
 
     if st.button(translate(language, "checks.custom_fields_submit"), key=f"custom_fields_refresh_{filter_field}"):
         st.cache_data.clear()
-        st.rerun()
 
     if not selected_fields:
         st.info(translate(language, "checks.choose_custom_fields"))
@@ -306,7 +302,6 @@ def render_id_duplicate_check(docs, base_url):
     st.write(translate(language, "checks.id_duplicate_description"))
     if st.button(translate(language, "checks.check_refresh"), key="id_duplicate_refresh"):
         st.cache_data.clear()
-        st.rerun()
 
     duplicates = check_id_duplicates(docs, base_url)
 

@@ -63,13 +63,12 @@ for heading, page_ids in NAV_SECTIONS:
         label = translate(language, f'nav.pages.{page_id}')
         if st.sidebar.button(label, key=f"nav_{page_id}"):
             st.session_state["PAGE"] = page_id
-            st.experimental_rerun()
+            page = page_id
 
 st.sidebar.divider()
 
 if st.sidebar.button(translate(language, "app.reload_data"), use_container_width=True):
     st.cache_data.clear()
-    st.rerun()
 
 st.sidebar.divider()
 status_placeholder = st.sidebar.empty()

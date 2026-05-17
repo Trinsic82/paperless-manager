@@ -35,4 +35,3 @@ def render_admin_overview(language="de"):
         with col:
             if st.button(label, key=f"admin_nav_{page_id}"):
                 st.session_state["PAGE"] = page_id
-                st.experimental_rerun()

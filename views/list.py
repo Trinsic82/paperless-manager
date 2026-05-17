@@ -9,7 +9,6 @@ def render_list(docs, doc_types, corresp, st_paths, tags, base_url):
     st.title(translate(language, "list.title"))
     if st.button(translate(language, "list.refresh")):
         st.cache_data.clear()
-        st.rerun()
 
     col1, col2 = st.columns(2)
     f_type = col1.selectbox(translate(language, "list.type_filter"), [translate(language, "list.all")] + list(doc_types.values()))

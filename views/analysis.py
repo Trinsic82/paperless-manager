@@ -12,7 +12,6 @@ def render_analysis(docs, doc_types, corresp, st_paths, tags, base_url, language
     refresh_label = translate(language, "analysis.analysis_refresh")
     if st.button(refresh_label):
         st.cache_data.clear()
-        st.rerun()
 
     type_counts = Counter([d.get('document_type') for d in docs])
     corr_counts = Counter([d.get('correspondent') for d in docs])
@@ -100,7 +99,6 @@ def render_correspondent_usage(docs, corresp, st_paths, base_url, language="de")
     refresh_label = translate(language, "correspondent_usage.refresh")
     if st.button(refresh_label, key="correspondent_usage_refresh"):
         st.cache_data.clear()
-        st.rerun()
 
     corr_counts = Counter([d.get('correspondent') for d in docs])
     usage_rows = []
