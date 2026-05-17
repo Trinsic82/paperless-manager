@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from collections import Counter
+from translations import translate
 from checks import (
     check_document_types_count,
     check_path_consistency,
@@ -12,42 +13,59 @@ from checks import (
 from api import fetch_custom_fields
 
 def render_path_check(docs, doc_types, st_paths, base_url):
-    st.title("⚖️ Speicherpfad-Dokumenttyp-Check")
-    if st.button("🔄 Check wiederholen"):
+    language = st.session_state.get("LANGUAGE", "de")
+    st.title(translate(language, "checks.path_check_title"))
+    if st.button(translate(language, "checks.check_refresh")):
         st.cache_data.clear()
         st.rerun()
 
     anomalies = check_path_consistency(docs, doc_types, st_paths, base_url)
     
     if anomalies:
+        df_anomalies = pd.DataFrame(anomalies)
+        df_anomalies = df_anomalies.rename(columns={
+            "ID": translate(language, "checks.id"),
+            "Titel": translate(language, "checks.title"),
+            "Dokumenttyp": translate(language, "checks.document_type_label"),
+            "Aktueller Pfad": translate(language, "checks.current_path"),
+            "Erwarteter Pfad": translate(language, "checks.expected_path"),
+        })
         st.dataframe(
-            pd.DataFrame(anomalies), 
+            df_anomalies, 
             use_container_width=True, 
             hide_index=True, 
-            column_config={"ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None)}
+            column_config={
+                translate(language, "checks.id"): st.column_config.LinkColumn(translate(language, "checks.id"), display_text=r".*/documents/(\d+)/details", width=None)
+            }
         )
     else:
-        st.success("Alle Pfade sind konsistent!")
+        st.success(translate(language, "checks.path_consistent"))
 
 def render_doctype_check(docs, doc_types, base_url, threshold=5):
-    st.title("📉 Dokumenttypen-Check")
-    st.write(f"Zeigt alle Dokumenttypen, die weniger als {threshold} Einträge haben.")
-    if st.button("🔄 Check wiederholen", key="doctype_refresh"):
+    language = st.session_state.get("LANGUAGE", "de")
+    st.title(translate(language, "checks.doctype_check_title"))
+    st.write(translate(language, "checks.doctype_check_description", threshold=threshold))
+    if st.button(translate(language, "checks.check_refresh"), key="doctype_refresh"):
         st.cache_data.clear()
         st.rerun()
 
     few_docs = check_document_types_count(docs, doc_types, base_url, threshold=threshold)
     if few_docs:
+        df_few = pd.DataFrame(few_docs)
+        df_few = df_few.rename(columns={
+            "Dokumenttyp": translate(language, "checks.document_type_label"),
+            "Anzahl": translate(language, "analysis.count"),
+        })
         st.dataframe(
-            pd.DataFrame(few_docs).sort_values("Anzahl", ascending=True),
+            df_few.sort_values(translate(language, "analysis.count"), ascending=True),
             hide_index=True,
             use_container_width=True,
             column_config={
-                "Dokumenttyp": st.column_config.LinkColumn("Dokumenttyp", display_text=r"#(.*)$", width=None)
+                translate(language, "checks.document_type_label"): st.column_config.LinkColumn(translate(language, "checks.document_type_label"), display_text=r"#(.*)$", width=None)
             }
         )
     else:
-        st.success(f"Keine Dokumenttypen mit weniger als {threshold} Einträgen gefunden!")
+        st.success(translate(language, "checks.doctype_no_results", threshold=threshold))
 
 def render_date_check(
     docs,
@@ -57,13 +75,18 @@ def render_date_check(
     min_year_offset=5,
     isolation_gap_years=5,
 ):
-    st.title("📅 Datums-Check")
+    language = st.session_state.get("LANGUAGE", "de")
+    st.title(translate(language, "checks.date_check_title"))
     st.write(
-        "Identifiziert Dokumente mit verdächtigen Jahreszahlen "
-        f"(Zukunft +{future_years} Jahre, globale Ausreißer unter dem 5. Perzentil minus {min_year_offset} Jahre, "
-        f"oder isolierte Lücken größer {isolation_gap_years} Jahre pro Typ)."
+        translate(
+            language,
+            "checks.date_check_description",
+            future_years=future_years,
+            min_year_offset=min_year_offset,
+            isolation_gap_years=isolation_gap_years,
+        )
     )
-    if st.button("🔄 Check wiederholen", key="date_refresh"):
+    if st.button(translate(language, "checks.check_refresh"), key="date_refresh"):
         st.cache_data.clear()
         st.rerun()
 
@@ -78,18 +101,25 @@ def render_date_check(
 
     if date_anomalies:
         df_dates = pd.DataFrame(date_anomalies)
+        df_dates = df_dates.rename(columns={
+            "ID": translate(language, "checks.id"),
+            "Titel": translate(language, "checks.title"),
+            "Typ": translate(language, "checks.type"),
+            "Jahr": translate(language, "checks.year"),
+            "Grund": translate(language, "checks.reason"),
+        })
         st.dataframe(
             df_dates, 
             use_container_width=True, 
             hide_index=True,
             column_config={
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
-                "Typ": st.column_config.LinkColumn("Typ", display_text=r"#(.*)$", width=None),
-                "Jahr": st.column_config.NumberColumn(format="%d", width=None)
+                translate(language, "checks.id"): st.column_config.LinkColumn(translate(language, "checks.id"), display_text=r".*/documents/(\d+)/details", width=None),
+                translate(language, "checks.type"): st.column_config.LinkColumn(translate(language, "checks.type"), display_text=r"#(.*)$", width=None),
+                translate(language, "checks.year"): st.column_config.NumberColumn(format="%d", width=None)
             }
         )
     else: 
-        st.success("Keine Datums-Anomalien gefunden!")
+        st.success(translate(language, "checks.date_no_anomalies"))
 
 
 def _build_paperless_filter_link(base_url, filter_field, group_id, display):
@@ -108,18 +138,17 @@ def _render_custom_field_group_check(
     filter_field,
     check_function,
 ):
+    language = st.session_state.get("LANGUAGE", "de")
     st.title(title)
-    st.write(f"Prüft, welche {group_label.lower()}bezogenen Custom Fields nicht gefüllt haben und zeigt fehlende Dokumente an.")
-    st.write(
-        f"{group_label}-CustomField-Kombinationen mit mindestens {warning_threshold}% Befüllung, aber nicht 100%, werden als potenzielle Anomalie markiert."
-    )
+    st.write(translate(language, "checks.custom_fields_intro", group_label=group_label))
+    st.write(translate(language, "checks.custom_fields_warning_intro", group_label=group_label, warning_threshold=warning_threshold))
 
     custom_fields = fetch_custom_fields()
     if not custom_fields:
-        st.warning("Keine Custom Fields in Paperless gefunden.")
+        st.warning(translate(language, "checks.no_custom_fields"))
         return
 
-    st.subheader("Wähle Custom Fields zum Prüfen:")
+    st.subheader(translate(language, "checks.custom_fields_select_title"))
     selected_fields = []
     cols = st.columns(2)
     for idx, cf in enumerate(custom_fields):
@@ -134,12 +163,12 @@ def _render_custom_field_group_check(
             ):
                 selected_fields.append({'path': cf['path'], 'name': cf['name']})
 
-    if st.button("🔄 Check ausführen", key=f"custom_fields_refresh_{filter_field}"):
+    if st.button(translate(language, "checks.custom_fields_submit"), key=f"custom_fields_refresh_{filter_field}"):
         st.cache_data.clear()
         st.rerun()
 
     if not selected_fields:
-        st.info("Wähle mindestens ein Custom Field, um den Check auszuführen.")
+        st.info(translate(language, "checks.choose_custom_fields"))
         return
 
     anomalies, summary = check_function(docs, group_names, selected_fields, base_url)
@@ -148,108 +177,134 @@ def _render_custom_field_group_check(
         group_id = row.pop('GroupID')
         group_name = row.pop('Group')
         row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
-        row['Custom Field'] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+        row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+        row.pop('Custom Field', None)
 
     for row in anomalies:
         group_id = row.pop('GroupID')
         group_name = row.pop('Group')
         row[group_label] = _build_paperless_filter_link(base_url, filter_field, group_id, group_name)
-        row['Custom Field'] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+        row[translate(language, "checks.custom_field_label")] = _build_paperless_filter_link(base_url, filter_field, group_id, row['Custom Field'])
+        row.pop('Custom Field', None)
 
-    st.subheader(f"⚠️ Potenzielle Anomalien ({warning_threshold}%–99% befüllt)")
-    st.write(
-        f"Diese {group_label}-CustomField-Kombinationen sind mindestens {warning_threshold}% befüllt, aber nicht 100%."
-    )
+    st.subheader(translate(language, "checks.custom_fields_warning", warning_threshold=warning_threshold))
+    st.write(translate(language, "checks.custom_fields_warning_intro", group_label=group_label, warning_threshold=warning_threshold))
 
     potential_issues = [
         s for s in summary
-        if s['Gesamt'] > 0
-        and (s['Gefüllt'] / s['Gesamt'] * 100) >= warning_threshold
-        and s['Gefüllt'] < s['Gesamt']
+        if s.get('Gesamt', 0) > 0
+        and (s.get('Gefüllt', 0) / s.get('Gesamt', 1) * 100) >= warning_threshold
+        and s.get('Gefüllt', 0) < s.get('Gesamt', 0)
     ]
 
     if potential_issues:
         df_issues = pd.DataFrame(potential_issues).copy()
-        df_issues['Befüllung %'] = (df_issues['Gefüllt'] / df_issues['Gesamt'] * 100).round(1).astype(str) + '%'
+        df_issues = df_issues.rename(columns={
+            'Gesamt': translate(language, "checks.total"),
+            'Gefüllt': translate(language, "checks.filled"),
+            'Fehlend': translate(language, "checks.missing"),
+        })
+        df_issues[translate(language, "checks.fill_percent")] = (
+            df_issues.get(translate(language, "checks.filled"))
+            / df_issues.get(translate(language, "checks.total")) * 100
+        ).round(1).astype(str) + '%'
         st.dataframe(
-            df_issues.sort_values("Befüllung %", ascending=False)[[group_label, "Custom Field", "Gesamt", "Gefüllt", "Fehlend", "Befüllung %"]],
+            df_issues.sort_values(translate(language, "checks.fill_percent"), ascending=False)[
+                [group_label, translate(language, "checks.custom_field_label"), translate(language, "checks.total"), translate(language, "checks.filled"), translate(language, "checks.missing"), translate(language, "checks.fill_percent")]
+            ],
             use_container_width=True,
             hide_index=True,
             column_config={
                 group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
-                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
-                "Gesamt": st.column_config.NumberColumn(width=None),
-                "Gefüllt": st.column_config.NumberColumn(width=None),
-                "Fehlend": st.column_config.NumberColumn(width=None),
-                "Befüllung %": st.column_config.TextColumn(width=None),
+                translate(language, "checks.custom_field_label"): st.column_config.LinkColumn(translate(language, "checks.custom_field_label"), display_text=r"#(.*)$", width=None),
+                translate(language, "checks.total"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.filled"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.missing"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.fill_percent"): st.column_config.TextColumn(width=None),
             }
         )
     else:
-        st.success("Keine Anomalien gefunden - alle CustomField-Kombinationen sind entweder <75% oder 100% befüllt.")
+        st.success(translate(language, "checks.custom_fields_no_anomalies", warning_threshold=warning_threshold))
 
     if summary:
-        st.subheader(f"Zusammenfassung nach {group_label} - Custom Fields-Check")
+        st.subheader(translate(language, "checks.custom_fields_summary_title", group_label=group_label))
+        df_summary = pd.DataFrame(summary)
+        df_summary = df_summary.rename(columns={
+            'Gesamt': translate(language, "checks.total"),
+            'Gefüllt': translate(language, "checks.filled"),
+            'Fehlend': translate(language, "checks.missing"),
+            'Status': translate(language, "checks.summary_status"),
+        })
         st.dataframe(
-            pd.DataFrame(summary).sort_values(["Fehlend", "Gesamt"], ascending=[False, False]),
+            df_summary.sort_values([translate(language, "checks.missing"), translate(language, "checks.total")], ascending=[False, False]),
             use_container_width=True,
             hide_index=True,
             column_config={
                 group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
-                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
-                "Gesamt": st.column_config.NumberColumn(width=None),
-                "Gefüllt": st.column_config.NumberColumn(width=None),
-                "Fehlend": st.column_config.NumberColumn(width=None),
-                "Status": st.column_config.TextColumn(width=None),
+                translate(language, "checks.custom_field_label"): st.column_config.LinkColumn(translate(language, "checks.custom_field_label"), display_text=r"#(.*)$", width=None),
+                translate(language, "checks.total"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.filled"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.missing"): st.column_config.NumberColumn(width=None),
+                translate(language, "checks.summary_status"): st.column_config.TextColumn(width=None),
             }
         )
 
     if anomalies:
-        st.subheader("Dokumente mit fehlendem Custom Field")
+        st.subheader(translate(language, "checks.custom_fields_missing_docs_title"))
+        df_anomalies = pd.DataFrame(anomalies)
+        df_anomalies = df_anomalies.rename(columns={
+            'ID': translate(language, "checks.id"),
+            'Titel': translate(language, "checks.title"),
+            'Wert': translate(language, "checks.value"),
+        })
         st.dataframe(
-            pd.DataFrame(anomalies),
+            df_anomalies,
             use_container_width=True,
             hide_index=True,
             column_config={
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
+                translate(language, "checks.id"): st.column_config.LinkColumn(translate(language, "checks.id"), display_text=r".*/documents/(\d+)/details", width=None),
                 group_label: st.column_config.LinkColumn(group_label, display_text=r"#(.*)$", width=None),
-                "Custom Field": st.column_config.LinkColumn("Custom Field", display_text=r"#(.*)$", width=None),
-                "Wert": st.column_config.TextColumn(width=None),
+                translate(language, "checks.custom_field_label"): st.column_config.LinkColumn(translate(language, "checks.custom_field_label"), display_text=r"#(.*)$", width=None),
+                translate(language, "checks.value"): st.column_config.TextColumn(width=None),
             }
         )
     elif not summary:
-        st.success("Alle Custom Fields sind für alle Dokumente gefüllt.")
+        st.success(translate(language, "checks.custom_fields_filled"))
 
 
 def render_custom_field_check(docs, doc_types, base_url, warning_threshold=75):
+    language = st.session_state.get("LANGUAGE", "de")
     _render_custom_field_group_check(
         docs,
         doc_types,
         base_url,
         warning_threshold,
-        "🧩 Custom Fields Check",
-        "Dokumenttyp",
+        translate(language, "checks.custom_fields_title"),
+        translate(language, "checks.document_type_label"),
         "document_type",
         check_custom_field_missing,
     )
 
 
 def render_custom_field_correspondent_check(docs, corresp, base_url, warning_threshold=75):
+    language = st.session_state.get("LANGUAGE", "de")
     _render_custom_field_group_check(
         docs,
         corresp,
         base_url,
         warning_threshold,
-        "🧩 Custom Fields Check - Korrespondenten",
-        "Korrespondent",
+        translate(language, "checks.custom_fields_correspondent_title"),
+        translate(language, "checks.correspondent_label"),
         "correspondent",
         check_custom_field_missing_by_correspondent,
     )
 
 
 def render_id_duplicate_check(docs, base_url):
-    st.title("🆔 ID-Duplikat-Check")
-    st.write("Sucht nach Dokumenten mit doppelten IDs. Dies ist normalerweise ein Fehler.")
-    if st.button("🔄 Check wiederholen", key="id_duplicate_refresh"):
+    language = st.session_state.get("LANGUAGE", "de")
+    st.title(translate(language, "checks.id_duplicate_title"))
+    st.write(translate(language, "checks.id_duplicate_description"))
+    if st.button(translate(language, "checks.check_refresh"), key="id_duplicate_refresh"):
         st.cache_data.clear()
         st.rerun()
 
@@ -257,18 +312,25 @@ def render_id_duplicate_check(docs, base_url):
 
     if duplicates:
         df_duplicates = pd.DataFrame(duplicates)
-        st.warning(f"⚠️ {len(df_duplicates)} Dokumente mit doppelten IDs gefunden!")
+        st.warning(translate(language, "checks.id_duplicate_warning", count=len(df_duplicates)))
+        df_duplicates = df_duplicates.rename(columns={
+            "ID": translate(language, "checks.id"),
+            "Titel": translate(language, "checks.title"),
+            "Dokumenttyp": translate(language, "checks.document_type_label"),
+            "Erstellt": translate(language, "checks.created"),
+            "Duplikate": translate(language, "checks.duplicates"),
+        })
         st.dataframe(
-            df_duplicates.sort_values("Duplikate", ascending=False),
+            df_duplicates.sort_values(translate(language, "checks.duplicates"), ascending=False),
             use_container_width=True,
             hide_index=True,
             column_config={
-                "ID": st.column_config.LinkColumn("ID", display_text=r".*/documents/(\d+)/details", width=None),
-                "Dokumenttyp": st.column_config.TextColumn(width=None),
-                "Titel": st.column_config.TextColumn(width=None),
-                "Erstellt": st.column_config.TextColumn(width=None),
-                "Duplikate": st.column_config.NumberColumn(width=None),
+                translate(language, "checks.id"): st.column_config.LinkColumn(translate(language, "checks.id"), display_text=r".*/documents/(\d+)/details", width=None),
+                translate(language, "checks.title"): st.column_config.TextColumn(width=None),
+                translate(language, "checks.document_type_label"): st.column_config.TextColumn(width=None),
+                translate(language, "checks.created"): st.column_config.TextColumn(width=None),
+                translate(language, "checks.duplicates"): st.column_config.NumberColumn(width=None),
             }
         )
     else:
-        st.success("Keine Duplikate gefunden! Alle IDs sind eindeutig.")
+        st.success(translate(language, "checks.id_duplicate_no_duplicates"))
